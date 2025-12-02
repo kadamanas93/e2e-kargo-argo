@@ -9,9 +9,6 @@ kind: ApplicationSet
 metadata:
   name: workloads
   namespace: argocd
-  annotations:
-    # Sync wave ensures CRDs are ready before ApplicationSet is applied
-    argocd.argoproj.io/sync-wave: "5"
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
