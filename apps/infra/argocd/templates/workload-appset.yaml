@@ -10,9 +10,8 @@ metadata:
   name: workloads
   namespace: argocd
   annotations:
-    # Helm hooks ensure this is created AFTER ArgoCD CRDs are installed
-    "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-weight": "10"
+    # Sync wave ensures CRDs are ready before ApplicationSet is applied
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
