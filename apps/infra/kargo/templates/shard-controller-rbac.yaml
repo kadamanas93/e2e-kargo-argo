@@ -1,0 +1,78 @@
+{{- if .Values.shardController.controlPlane.enabled }}
+# ServiceAccount for distributed shard controllers to authenticate to control plane
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.shardController.controlPlane.serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: kargo
+    app.kubernetes.io/component: shard-controller
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+---
+# ClusterRole with permissions needed by shard controllers
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.shardController.controlPlane.serviceAccountName }}
+  labels:
+    app.kubernetes.io/name: kargo
+    app.kubernetes.io/component: shard-controller
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+rules:
+# Kargo resources - full access for controllers
+- apiGroups: ["kargo.akuity.io"]
+  resources: ["*"]
+  verbs: ["*"]
+# Core resources needed by controller
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch", "update"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["serviceaccounts"]
+  verbs: ["get", "list", "watch"]
+# Coordination for leader election
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.shardController.controlPlane.serviceAccountName }}
+  labels:
+    app.kubernetes.io/name: kargo
+    app.kubernetes.io/component: shard-controller
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.shardController.controlPlane.serviceAccountName }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.shardController.controlPlane.serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
+---
+# Long-lived token Secret for ServiceAccount
+# In Kubernetes 1.24+, tokens are not auto-created
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.shardController.controlPlane.serviceAccountName }}-token
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    kubernetes.io/service-account.name: {{ .Values.shardController.controlPlane.serviceAccountName }}
+  labels:
+    app.kubernetes.io/name: kargo
+    app.kubernetes.io/component: shard-controller
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+type: kubernetes.io/service-account-token
+{{- end }}
+

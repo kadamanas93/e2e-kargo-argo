@@ -1,19 +1,40 @@
 # Common Kargo configuration
-# Mode-specific settings in values-controller.yaml or values-agent.yaml
+# This file contains shared settings for all clusters
+#
+# DISTRIBUTED ARCHITECTURE:
+# - infra cluster: Full control plane (API, webhooks, management controller, garbage collector)
+# - other clusters: Distributed controllers that "phone home" to the control plane
+#
+# The distributed controllers:
+# 1. Run in each target cluster
+# 2. Use kubeconfigSecrets.kargo to connect to the control plane
+# 3. Have a unique shardName to identify themselves
+# 4. Only handle resources assigned to their shard
+#
+# Setup order:
+# 1. Deploy Kargo to infra cluster (creates control plane + ServiceAccount for shards)
+# 2. Run: ./setup-scripts/setup-kargo-shards.sh (creates kubeconfig secrets in shard clusters)
+# 3. Deploy Kargo to shard clusters (controllers connect to control plane)
 
-# Domain suffix for ingress
-domainSuffix: local
-
-# Controller address (for agents to connect to)
-controllerAddress: kargo.infra.local
-
-# Kargo chart values (prefixed with kargo)
 kargo:
-  # Common settings across all installations
-  
-  # API settings
+  # TLS disabled globally - we're behind nginx proxy
   api:
-    # TLS disabled - behind nginx proxy
     tls:
       enabled: false
+      terminatedUpstream: true
+    ingress:
+      enabled: false
+      
+  # Webhook server TLS - use self-signed (requires cert-manager)
+  webhooksServer:
+    tls:
+      selfSignedCert: true
 
+# Shard controller configuration
+# Controls the distributed controller setup
+shardController:
+  # Control plane settings (for infra cluster only)
+  # Creates ServiceAccount, ClusterRole, ClusterRoleBinding for shard controllers
+  controlPlane:
+    enabled: false
+    serviceAccountName: kargo-shard-controller

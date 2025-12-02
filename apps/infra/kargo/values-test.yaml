@@ -1,23 +1,62 @@
 # Kargo values for: test cluster
-# This is an AGENT - connects to controller in infra cluster
+# This is a DISTRIBUTED CONTROLLER (shard) - phones home to infra control plane
+#
+# Architecture:
+# - Kargo data (Projects, Stages, Freight) lives in the INFRA cluster
+# - This controller reads/writes to infra via kubeconfigSecrets.kargo
+# - This controller handles resources assigned to shard "test"
+#
+# Prerequisites:
+# - Run ./setup-scripts/setup-kargo-shards.sh to create the kubeconfig secret
 
 kargo:
-  # Disable controller components - agent only
+  # Point to control plane cluster via kubeconfig secret
+  # This secret is created by setup-kargo-shards.sh script
+  kubeconfigSecrets:
+    kargo: kargo-control-plane-kubeconfig
+  
+  # Controller configuration
+  controller:
+    enabled: true
+    # Shard name - this controller only processes resources with this shard
+    shardName: "test"
+    isDefault: false
+    
+    # ArgoCD integration (for this cluster's ArgoCD)
+    argocd:
+      integrationEnabled: true
+      namespace: argocd
+    
+    # Argo Rollouts integration
+    rollouts:
+      integrationEnabled: false
+  
+  # Disable all control plane components - they run in infra cluster
   api:
     enabled: false
     
-  controller:
+  managementController:
     enabled: false
     
-  webhooks:
+  webhooksServer:
+    enabled: false
+    
+  externalWebhooksServer:
     enabled: false
     
   garbageCollector:
     enabled: false
   
-  # Agent configuration
-  agent:
-    enabled: true
-    replicas: 1
-    controllerAddress: "http://kargo.infra.local"
-
+  # CRDs - NOT needed in shard clusters
+  # Kargo resources live in the control plane (accessed via kubeconfigSecrets.kargo)
+  crds:
+    install: false
+  
+  # RBAC - install for the controller
+  rbac:
+    installClusterRoles: true
+    installClusterRoleBindings: true
+  
+  # Webhooks - don't register (control plane handles this)
+  webhooks:
+    register: false

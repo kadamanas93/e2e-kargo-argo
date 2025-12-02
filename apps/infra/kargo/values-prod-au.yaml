@@ -1,23 +1,36 @@
 # Kargo values for: prod-au cluster
-# This is an AGENT - connects to controller in infra cluster
+# Distributed controller (shard) - phones home to infra control plane
 
 kargo:
-  # Disable controller components - agent only
+  kubeconfigSecrets:
+    kargo: kargo-control-plane-kubeconfig
+  
+  controller:
+    enabled: true
+    shardName: "prod-au"
+    isDefault: false
+    argocd:
+      integrationEnabled: true
+      namespace: argocd
+    rollouts:
+      integrationEnabled: false
+  
   api:
     enabled: false
-    
-  controller:
+  managementController:
     enabled: false
-    
-  webhooks:
+  webhooksServer:
     enabled: false
-    
+  externalWebhooksServer:
+    enabled: false
   garbageCollector:
     enabled: false
   
-  # Agent configuration
-  agent:
-    enabled: true
-    replicas: 1
-    controllerAddress: "http://kargo.infra.local"
-
+  # CRDs not needed - Kargo resources live in control plane
+  crds:
+    install: false
+  rbac:
+    installClusterRoles: true
+    installClusterRoleBindings: true
+  webhooks:
+    register: false

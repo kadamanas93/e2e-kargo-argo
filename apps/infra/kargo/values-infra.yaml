@@ -1,48 +1,107 @@
 # Kargo values for: infra cluster
-# This is the CONTROLLER - full Kargo installation
+# This is the CONTROL PLANE - full Kargo installation
+# All other clusters run distributed controllers that phone home here
+
+# Enable control plane resources for shard controllers
+shardController:
+  controlPlane:
+    enabled: true
+    serviceAccountName: kargo-shard-controller
 
 kargo:
-  # Enable all controller components
+  # API Server - enabled only in control plane
   api:
     enabled: true
     replicas: 1  # Single replica for local dev
     
+    # Domain name for Kargo API
+    host: kargo.infra.local
+    
+    # Admin account for initial setup
+    adminAccount:
+      enabled: true
+      # Password hash for 'admin' - CHANGE THIS IN PRODUCTION!
+      # Generate with: htpasswd -nbBC 10 "" <password> | tr -d ':\n' | sed 's/$2y/$2a/'
+      passwordHash: "$2a$10$Zrhhie4vLz76U043gSkofulQpMeC4Saa4XVFhVQrMAYZHpKEpWMsW"
+      # Token signing key - CHANGE THIS IN PRODUCTION!
+      # Generate with: openssl rand -base64 29 | tr -d "=+/" | cut -c1-24
+      tokenSigningKey: "iwishthat1teleaboram"
+      tokenTTL: 24h
+    
+    # ArgoCD integration - URLs for deep linking to each cluster's ArgoCD
+    argocd:
+      urls:
+        "": http://argocd.infra.local
+        "test": http://argocd.test.local
+        "dev": http://argocd.dev.local
+        "staging": http://argocd.staging.local
+        "prod-us": http://argocd.prod-us.local
+        "prod-eu": http://argocd.prod-eu.local
+        "prod-au": http://argocd.prod-au.local
+    
+    # TLS - disabled since we're behind nginx proxy
+    tls:
+      enabled: false
+      terminatedUpstream: true
+    
+    # Use Traefik ingress for routing
     ingress:
       enabled: true
       ingressClassName: traefik
       annotations:
         traefik.ingress.kubernetes.io/router.entrypoints: web
-      hosts:
-        - host: kargo.infra.local
-          paths:
-            - path: /
-              pathType: Prefix
-    
-    # Admin account for initial setup
-    adminAccount:
-      enabled: true
-      # Password hash - change this in production!
-      # Default password: admin
-      passwordHash: "$2a$10$Zrhhie4vLz76U043gSkofulQpMeC4Saa4XVFhVQrMAYZHpKEpWMsW"
-      # Token signing key - CHANGE THIS IN PRODUCTION!
-      # Generate with: openssl rand -base64 32
-      tokenSigningKey: "c2VjcmV0LWtleS1mb3ItbG9jYWwtZGV2LW9ubHktY2hhbmdlLWluLXByb2Q="
+      tls:
+        enabled: false
   
+  # Controller configuration - this is the DEFAULT controller
+  # It handles resources not assigned to a specific shard
   controller:
     enabled: true
-    replicas: 1  # Single replica for local dev
+    # No shardName = this is the default controller
+    # It will process all resources not explicitly assigned to a shard
+    isDefault: true
     
-    # Global controller settings
-    shardConfig:
-      # Enable multi-cluster mode
-      managementController:
-        enabled: true
+    # ArgoCD integration (for the infra cluster's ArgoCD)
+    argocd:
+      integrationEnabled: true
+      namespace: argocd
+    
+    # Argo Rollouts integration (disabled for now)
+    rollouts:
+      integrationEnabled: false
   
-  # Webhooks for validation
-  webhooks:
+  # Management controller - only in control plane
+  # Manages permissions for other components dynamically
+  managementController:
     enabled: true
-    
-  # Garbage collection
+  
+  # Webhooks server (internal Kubernetes webhooks) - only in control plane
+  webhooksServer:
+    enabled: true
+    replicas: 1
+    tls:
+      selfSignedCert: true
+  
+  # External webhooks server - only in control plane
+  externalWebhooksServer:
+    enabled: true
+    replicas: 1
+    host: kargo-webhooks.infra.local
+  
+  # Garbage collector - only in control plane
   garbageCollector:
     enabled: true
-
+  
+  # CRDs - install in control plane
+  crds:
+    install: true
+    keep: true
+  
+  # RBAC - install in control plane
+  rbac:
+    installClusterRoles: true
+    installClusterRoleBindings: true
+  
+  # Webhooks - register in control plane
+  webhooks:
+    register: true
