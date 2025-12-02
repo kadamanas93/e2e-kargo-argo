@@ -1,0 +1,37 @@
+{{- if .Values.gitRepo.url }}
+# ArgoCD self-management Application
+# This Application manages ArgoCD itself, separate from the ApplicationSet
+# ArgoCD is bootstrapped via Helm, then this Application takes over for ongoing sync
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+  annotations:
+    # Helm hooks ensure this is created AFTER ArgoCD CRDs are installed
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: {{ .Values.gitRepo.url }}
+    targetRevision: {{ .Values.gitRepo.revision }}
+    path: {{ .Values.gitRepo.path }}/infra/argocd
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-{{ .Values.clusterName }}.yaml
+      ignoreMissingValueFiles: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}
+
