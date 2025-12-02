@@ -1,0 +1,10 @@
+# Cluster-specific values for: staging
+clusterName: staging
+
+argo-cd:
+  server:
+    ingress:
+      hostname: argocd.staging.local
+  global:
+    domain: argocd.staging.local
+

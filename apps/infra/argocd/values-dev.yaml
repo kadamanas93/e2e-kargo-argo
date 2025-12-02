@@ -1,0 +1,10 @@
+# Cluster-specific values for: dev
+clusterName: dev
+
+argo-cd:
+  server:
+    ingress:
+      hostname: argocd.dev.local
+  global:
+    domain: argocd.dev.local
+

@@ -1,0 +1,45 @@
+# Default values for simple-echo-server
+
+# Cluster info (injected by ApplicationSet)
+clusterName: ""
+domainSuffix: local
+
+replicaCount: 2
+
+image:
+  repository: hashicorp/http-echo
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Message to display
+message: "Hello from simple-echo-server!"
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5678
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  # Host is auto-generated: <app-name>.<clusterName>.<domainSuffix>
+  # Override with explicit value if needed
+  host: ""
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+# Liveness and readiness probes
+probes:
+  enabled: true
+  path: /
+  initialDelaySeconds: 5
+  periodSeconds: 10
+

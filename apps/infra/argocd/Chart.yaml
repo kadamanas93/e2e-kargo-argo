@@ -1,0 +1,11 @@
+apiVersion: v2
+name: argocd
+description: ArgoCD wrapper chart with ApplicationSets for GitOps bootstrap
+version: 1.0.0
+appVersion: "9.1.5"
+
+dependencies:
+  - name: argo-cd
+    version: "9.1.5"
+    repository: "https://argoproj.github.io/argo-helm"
+

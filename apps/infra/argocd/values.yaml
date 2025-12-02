@@ -1,0 +1,77 @@
+# Common ArgoCD configuration for all clusters
+# This file is configured for LOCAL DEVELOPMENT (single-node k3d clusters)
+# For production HA mode, increase replicas and enable redis-ha
+
+# Cluster name - overridden per cluster
+clusterName: ""
+
+# Git repository configuration for ApplicationSets
+gitRepo:
+  url: ""  # Set this to your Git repo URL
+  revision: HEAD
+  path: apps
+
+# Domain suffix for ingress
+domainSuffix: local
+
+# ArgoCD Helm chart values (prefixed with argo-cd)
+argo-cd:
+  # Single-replica mode for local k3d (single-node clusters)
+  # For HA mode in production, set replicas: 2 and enable redis-ha
+  controller:
+    replicas: 1
+    
+  server:
+    replicas: 1
+    # Run insecure since we're behind nginx proxy
+    extraArgs:
+      - --insecure
+    
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: web
+      # hostname is set per-cluster in values-<cluster>.yaml
+      hostname: ""
+    
+  repoServer:
+    replicas: 1
+    
+  applicationSet:
+    replicas: 1
+    
+  # Disable HA redis for local development
+  redis-ha:
+    enabled: false
+    
+  # Use single-instance redis for local development
+  redis:
+    enabled: true
+
+  # Global configs
+  global:
+    domain: ""  # Set per-cluster
+    
+  configs:
+    params:
+      # Allow insecure connection (behind proxy)
+      server.insecure: true
+    cm:
+      # Enable ApplicationSet controller
+      applicationsetcontroller.enable.progressive.syncs: true
+    
+    # Git credentials are configured via values-credentials.yaml (git-ignored)
+    # See values-credentials.yaml.template for setup instructions
+    # 
+    # Example structure in values-credentials.yaml:
+    # argo-cd:
+    #   configs:
+    #     credentialTemplates:
+    #       github-https:
+    #         url: https://github.com/your-org
+    #         username: git
+    #         password: <your-github-pat>
+    credentialTemplates: {}
+    repositories: {}
+

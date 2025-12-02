@@ -1,0 +1,52 @@
+{{- if .Values.gitRepo.url }}
+# ApplicationSet for workload applications
+# Uses Git generator to discover apps in apps/workloads/
+# To add a new workload: create apps/workloads/<app-name>/ with Chart.yaml and values.yaml
+# Optionally add values-<cluster>.yaml for cluster-specific overrides
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: workloads
+  namespace: argocd
+  annotations:
+    # Helm hooks ensure this is created AFTER ArgoCD CRDs are installed
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+spec:
+  generators:
+    - git:
+        repoURL: {{ .Values.gitRepo.url }}
+        revision: {{ .Values.gitRepo.revision }}
+        directories:
+          - path: {{ .Values.gitRepo.path }}/workloads/*
+  template:
+    metadata:
+      name: '{{`{{ path.basename }}`}}'
+    spec:
+      project: default
+      source:
+        repoURL: {{ .Values.gitRepo.url }}
+        targetRevision: {{ .Values.gitRepo.revision }}
+        path: '{{`{{ path }}`}}'
+        helm:
+          valueFiles:
+            - values.yaml
+            - values-{{ .Values.clusterName }}.yaml
+          # Skip missing per-cluster values files - allows apps to work with just values.yaml
+          ignoreMissingValueFiles: true
+          # Pass cluster info to workloads for auto-generating ingress hostnames
+          parameters:
+            - name: clusterName
+              value: {{ .Values.clusterName }}
+            - name: domainSuffix
+              value: {{ .Values.domainSuffix }}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{`{{ path.basename }}`}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+{{- end }}

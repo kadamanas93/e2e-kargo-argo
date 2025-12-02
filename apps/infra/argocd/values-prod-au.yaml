@@ -1,0 +1,10 @@
+# Cluster-specific values for: prod-au
+clusterName: prod-au
+
+argo-cd:
+  server:
+    ingress:
+      hostname: argocd.prod-au.local
+  global:
+    domain: argocd.prod-au.local
+

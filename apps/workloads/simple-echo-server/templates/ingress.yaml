@@ -1,0 +1,44 @@
+{{- if .Values.ingress.enabled -}}
+{{- $appName := include "simple-echo-server.fullname" . -}}
+{{- $host := .Values.ingress.host -}}
+{{- if and (not $host) .Values.clusterName -}}
+{{- $host = printf "%s.%s.%s" $appName .Values.clusterName .Values.domainSuffix -}}
+{{- end -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $appName }}
+  labels:
+    {{- include "simple-echo-server.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  rules:
+    {{- if $host }}
+    - host: {{ $host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $appName }}
+                port:
+                  number: {{ .Values.service.port }}
+    {{- else }}
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $appName }}
+                port:
+                  number: {{ .Values.service.port }}
+    {{- end }}
+{{- end }}

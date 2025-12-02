@@ -5,6 +5,10 @@
 # ==========================================
 set -euo pipefail
 
+# Get script and project directories
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 # Trap for cleanup on exit
 cleanup() {
     local exit_code=$?
@@ -32,13 +36,14 @@ trap cleanup EXIT
 CLUSTERS=("test" "dev" "staging" "prod-us" "prod-eu" "prod-au" "infra")
 
 # 2. Define expected Apps (For /etc/hosts generation ONLY)
-APPS=("argocd" "kargo" "simple-go-http-server")
+APPS=("argocd" "kargo" "simple-echo-server")
 
 # 3. Base Configuration
 START_PORT=8080
 DOMAIN_SUFFIX="local"
-PROXY_CONF_FILE="multi-cluster-proxy.conf"
+PROXY_CONF_FILE="$PROJECT_ROOT/multi-cluster-proxy.conf"
 PROXY_CONTAINER="k3d-multi-cluster-proxy"
+DOCKER_NETWORK="k3d-multi-cluster"
 MAX_PORT=65535
 
 # Colors for output
@@ -143,7 +148,7 @@ validate_nginx_config() {
     fi
     
     # Try to validate using nginx if available in a container
-    if docker run --rm -v "$(pwd)/$config_file:/etc/nginx/nginx.conf:ro" \
+    if docker run --rm -v "$config_file:/etc/nginx/nginx.conf:ro" \
         nginx:alpine nginx -t >/dev/null 2>&1; then
         return 0
     else
@@ -157,6 +162,28 @@ validate_nginx_config() {
 container_exists() {
     local container_name=$1
     docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "^${container_name}$" || return 1
+}
+
+# Check if Docker network exists
+network_exists() {
+    local network_name=$1
+    docker network ls --format '{{.Name}}' 2>/dev/null | grep -q "^${network_name}$"
+}
+
+# Create Docker network if it doesn't exist
+ensure_network() {
+    local network_name=$1
+    if network_exists "$network_name"; then
+        log_info "Docker network '$network_name' already exists"
+    else
+        log_info "Creating Docker network: $network_name"
+        if docker network create "$network_name" >/dev/null 2>&1; then
+            log_success "Created Docker network: $network_name"
+        else
+            log_error "Failed to create Docker network: $network_name"
+            exit 1
+        fi
+    fi
 }
 
 # ==========================================
@@ -179,6 +206,10 @@ log_success "Docker daemon is running"
 # Initialize Proxy Config File
 log_info "Initializing proxy configuration file..."
 echo "events {} http {" > "$PROXY_CONF_FILE"
+
+# Create shared Docker network for cross-cluster communication
+log_info "Setting up shared Docker network..."
+ensure_network "$DOCKER_NETWORK"
 
 # ==========================================
 # MAIN LOOP
@@ -244,6 +275,7 @@ do
         
         if ! k3d cluster create "$CLUSTER_NAME" \
             -p "$ASSIGNED_PORT:80@loadbalancer" \
+            --network "$DOCKER_NETWORK" \
             --wait >/dev/null 2>&1; then
             # Check if the error is because cluster already exists
             if cluster_exists "$CLUSTER_NAME"; then
@@ -337,7 +369,8 @@ fi
 log_info "Starting nginx proxy container..."
 if docker run -d --name "$PROXY_CONTAINER" \
     -p 80:80 \
-    -v "$(pwd)/$PROXY_CONF_FILE:/etc/nginx/nginx.conf:ro" \
+    -v "$PROXY_CONF_FILE:/etc/nginx/nginx.conf:ro" \
+    --network "$DOCKER_NETWORK" \
     --add-host=host.docker.internal:host-gateway \
     nginx:alpine >/dev/null 2>&1; then
     log_success "Proxy container started successfully"
@@ -381,3 +414,4 @@ do
 done
 echo ""
 echo ""
+

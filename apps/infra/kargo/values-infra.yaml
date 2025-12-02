@@ -1,0 +1,46 @@
+# Kargo values for: infra cluster
+# This is the CONTROLLER - full Kargo installation
+
+kargo:
+  # Enable all controller components
+  api:
+    enabled: true
+    replicas: 2
+    
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: web
+      hosts:
+        - host: kargo.infra.local
+          paths:
+            - path: /
+              pathType: Prefix
+    
+    # Admin account for initial setup
+    adminAccount:
+      enabled: true
+      # Password hash - change this in production!
+      # Default: admin
+      passwordHash: "$2a$10$rDwV/8jMNjLbD9xMzDGrak/aHrXKPJAiRVDqhl2pfz2d0euJjUy6G"
+      tokenSigningKey: ""  # Will be auto-generated
+  
+  controller:
+    enabled: true
+    replicas: 2
+    
+    # Global controller settings
+    shardConfig:
+      # Enable multi-cluster mode
+      managementController:
+        enabled: true
+  
+  # Webhooks for validation
+  webhooks:
+    enabled: true
+    
+  # Garbage collection
+  garbageCollector:
+    enabled: true
+

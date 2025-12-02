@@ -1,0 +1,19 @@
+# Common Kargo configuration
+# Mode-specific settings in values-controller.yaml or values-agent.yaml
+
+# Domain suffix for ingress
+domainSuffix: local
+
+# Controller address (for agents to connect to)
+controllerAddress: kargo.infra.local
+
+# Kargo chart values (prefixed with kargo)
+kargo:
+  # Common settings across all installations
+  
+  # API settings
+  api:
+    # TLS disabled - behind nginx proxy
+    tls:
+      enabled: false
+

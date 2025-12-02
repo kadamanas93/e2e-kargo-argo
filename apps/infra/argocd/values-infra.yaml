@@ -1,0 +1,10 @@
+# Cluster-specific values for: infra
+clusterName: infra
+
+argo-cd:
+  server:
+    ingress:
+      hostname: argocd.infra.local
+  global:
+    domain: argocd.infra.local
+

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: simple-echo-server
+description: A simple Echo server for testing GitOps deployments
+version: 1.0.0
+appVersion: "1.0.0"
+type: application
+

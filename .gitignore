@@ -1,1 +1,10 @@
+# Generated files
 multi-cluster-proxy.conf
+
+# Local credentials (git-ignored, used by bootstrap.sh)
+# Create from template: cp values-credentials.yaml.template values-credentials.yaml
+values-credentials.yaml
+
+# Helm dependencies (downloaded by helm dependency update)
+**/charts/
+**/Chart.lock
