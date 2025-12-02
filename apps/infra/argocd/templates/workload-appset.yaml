@@ -1,8 +1,9 @@
 {{- if .Values.gitRepo.url }}
 # ApplicationSet for workload applications
-# Uses Git generator to discover apps in apps/workloads/
-# To add a new workload: create apps/workloads/<app-name>/ with Chart.yaml and values.yaml
+# Uses Git files generator to discover apps in apps/workloads/ via app-config.yaml files
+# To add a new workload: create apps/workloads/<app-name>/ with Chart.yaml, values.yaml, and app-config.yaml
 # Optionally add values-<cluster>.yaml for cluster-specific overrides
+# To scope an app to specific clusters: edit app-config.yaml and list only the desired clusters in targetClusters
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -13,21 +14,23 @@ metadata:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "10"
 spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
   generators:
     - git:
         repoURL: {{ .Values.gitRepo.url }}
         revision: {{ .Values.gitRepo.revision }}
-        directories:
-          - path: {{ .Values.gitRepo.path }}/workloads/*
+        files:
+          - path: {{ .Values.gitRepo.path }}/workloads/*/app-config.yaml
   template:
     metadata:
-      name: '{{`{{ path.basename }}`}}'
+      name: '{{ `{{ index .path.segments 2 }}` }}'
     spec:
       project: default
       source:
         repoURL: {{ .Values.gitRepo.url }}
         targetRevision: {{ .Values.gitRepo.revision }}
-        path: '{{`{{ path }}`}}'
+        path: '{{ `{{ .path.path | dir }}` }}'
         helm:
           valueFiles:
             - values.yaml
@@ -42,11 +45,16 @@ spec:
               value: {{ .Values.domainSuffix }}
       destination:
         server: https://kubernetes.default.svc
-        namespace: '{{`{{ path.basename }}`}}'
+        namespace: '{{ `{{ index .path.segments 2 }}` }}'
       syncPolicy:
         automated:
           prune: true
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
+  # Only generate Application if this cluster is in the app's targetClusters list
+  templatePatch: |
+    {{ `{{- if not (has "` }}{{ .Values.clusterName }}{{ `" .targetClusters) }}` }}
+    {{ `{{ fail "skip" }}` }}
+    {{ `{{- end }}` }}
 {{- end }}
