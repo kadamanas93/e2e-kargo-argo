@@ -29,7 +29,7 @@ spec:
       source:
         repoURL: {{ .Values.gitRepo.url }}
         targetRevision: {{ .Values.gitRepo.revision }}
-        path: '{{ `{{ .path.path | dir }}` }}'
+        path: '{{ `{{ .path.path }}` }}'
         helm:
           valueFiles:
             - values.yaml

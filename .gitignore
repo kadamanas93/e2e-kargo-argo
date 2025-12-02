@@ -1,6 +1,9 @@
 # Generated files
 multi-cluster-proxy.conf
 
+# Unneeded files
+kargo-values.yaml
+
 # Local credentials (git-ignored)
 # Contains sensitive tokens - do not commit
 values-credentials.yaml
