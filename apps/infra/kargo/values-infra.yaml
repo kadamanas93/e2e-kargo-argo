@@ -5,7 +5,7 @@ kargo:
   # Enable all controller components
   api:
     enabled: true
-    replicas: 2
+    replicas: 1  # Single replica for local dev
     
     ingress:
       enabled: true
@@ -22,13 +22,15 @@ kargo:
     adminAccount:
       enabled: true
       # Password hash - change this in production!
-      # Default: admin
-      passwordHash: "$2a$10$rDwV/8jMNjLbD9xMzDGrak/aHrXKPJAiRVDqhl2pfz2d0euJjUy6G"
-      tokenSigningKey: ""  # Will be auto-generated
+      # Default password: admin
+      passwordHash: "$2a$10$Zrhhie4vLz76U043gSkofulQpMeC4Saa4XVFhVQrMAYZHpKEpWMsW"
+      # Token signing key - CHANGE THIS IN PRODUCTION!
+      # Generate with: openssl rand -base64 32
+      tokenSigningKey: "c2VjcmV0LWtleS1mb3ItbG9jYWwtZGV2LW9ubHktY2hhbmdlLWluLXByb2Q="
   
   controller:
     enabled: true
-    replicas: 2
+    replicas: 1  # Single replica for local dev
     
     # Global controller settings
     shardConfig:

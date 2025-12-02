@@ -295,7 +295,7 @@ echo ""
 echo "ArgoCD has been installed in the following clusters:"
 for CLUSTER_NAME in "${CLUSTERS_TO_BOOTSTRAP[@]}"; do
     if context_exists "$CLUSTER_NAME"; then
-        echo "  - $CLUSTER_NAME: https://argocd.${CLUSTER_NAME}.local"
+        echo "  - $CLUSTER_NAME: argocd.${CLUSTER_NAME}.local"
     fi
 done
 echo ""
