@@ -8,6 +8,10 @@ kind: ApplicationSet
 metadata:
   name: infra-apps
   namespace: argocd
+  annotations:
+    # Helm hooks ensure this is created AFTER ArgoCD CRDs are installed
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]

@@ -7,7 +7,7 @@ clusterName: ""
 
 # Git repository configuration for ApplicationSets
 gitRepo:
-  url: ""  # Set this to your Git repo URL
+  url: "https://github.com/kadamanas93/e2e-kargo-argo.git"
   revision: HEAD
   path: apps
 
