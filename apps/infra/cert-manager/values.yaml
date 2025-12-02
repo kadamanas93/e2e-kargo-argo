@@ -1,0 +1,48 @@
+# Cert-manager configuration
+# This is a wrapper chart that installs cert-manager with sensible defaults
+
+cert-manager:
+  # Install CRDs with the chart
+  installCRDs: true
+  
+  # Single replica for local development
+  # For production, increase to 2+ and enable HA
+  replicaCount: 1
+  
+  webhook:
+    replicaCount: 1
+    
+  cainjector:
+    replicaCount: 1
+    
+  # Resource limits for local development
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+      
+  webhook:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+        
+  cainjector:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+  # Prometheus metrics (disabled for local dev)
+  prometheus:
+    enabled: false
+

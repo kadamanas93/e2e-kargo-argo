@@ -1,0 +1,11 @@
+apiVersion: v2
+name: cert-manager
+description: Cert-manager wrapper chart for automatic TLS certificate management
+version: 1.0.0
+appVersion: "1.19.1"
+
+dependencies:
+  - name: cert-manager
+    version: "v1.19.1"
+    repository: "https://charts.jetstack.io"
+
