@@ -22,7 +22,7 @@ kargo:
       enabled: true
       # Password hash for 'admin' - CHANGE THIS IN PRODUCTION!
       # Generate with: htpasswd -nbBC 10 "" <password> | tr -d ':\n' | sed 's/$2y/$2a/'
-      passwordHash: "$2a$10$Zrhhie4vLz76U043gSkofulQpMeC4Saa4XVFhVQrMAYZHpKEpWMsW"
+      passwordHash: "$2a$10$GKKMCq46GGQQF3yJYaq.5uEUi1esc.ws3lCagEznNuknve3IQR0Xi"
       # Token signing key - CHANGE THIS IN PRODUCTION!
       # Generate with: openssl rand -base64 29 | tr -d "=+/" | cut -c1-24
       tokenSigningKey: "iwishthat1teleaboram"
