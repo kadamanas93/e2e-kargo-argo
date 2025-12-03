@@ -1,40 +1,54 @@
 #!/bin/bash
-# Pre-commit hook to generate cluster-specific app directories
+# Pre-commit hook to generate cluster-specific app directories and Kargo pipelines
 # 
-# This hook runs the Go script that reads app-config.yaml files and generates
-# the cluster-specific directories under apps/clusters/ that ApplicationSet needs.
+# This hook runs Go scripts that:
+# 1. Generate cluster-specific directories under apps/clusters/ for ApplicationSet
+# 2. Generate Kargo pipeline configs under apps/kargo-configs/
 #
 # Setup: git config core.hooksPath .githooks
 
 set -e
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-SCRIPT_PATH="$REPO_ROOT/scripts/generate-cluster-apps.go"
-
-# Check if the script exists
-if [ ! -f "$SCRIPT_PATH" ]; then
-    echo "Warning: generate-cluster-apps.go not found, skipping cluster directory generation"
-    exit 0
-fi
 
 # Check if Go is installed
 if ! command -v go &> /dev/null; then
-    echo "Warning: Go is not installed, skipping cluster directory generation"
-    echo "Install Go and run 'go run scripts/generate-cluster-apps.go' manually"
+    echo "Warning: Go is not installed, skipping code generation"
+    echo "Install Go and run the scripts manually:"
+    echo "  go run scripts/generate-cluster-apps.go"
+    echo "  go run scripts/generate-kargo-pipelines.go"
     exit 0
 fi
 
-echo "Generating cluster-specific app directories..."
-
-# Run the generator from the scripts directory (where go.mod is)
+# Run from the scripts directory (where go.mod is)
 cd "$REPO_ROOT/scripts"
-go run generate-cluster-apps.go
 
-# Stage any generated/modified files in apps/clusters/
+# Generate cluster-specific app directories
+CLUSTER_SCRIPT="generate-cluster-apps.go"
+if [ -f "$CLUSTER_SCRIPT" ]; then
+    echo "Generating cluster-specific app directories..."
+    go run "$CLUSTER_SCRIPT"
+else
+    echo "Warning: $CLUSTER_SCRIPT not found, skipping"
+fi
+
+# Generate Kargo pipeline configs
+KARGO_SCRIPT="generate-kargo-pipelines.go"
+if [ -f "$KARGO_SCRIPT" ]; then
+    echo "Generating Kargo pipeline configs..."
+    go run "$KARGO_SCRIPT"
+else
+    echo "Warning: $KARGO_SCRIPT not found, skipping"
+fi
+
+# Stage any generated/modified files
 cd "$REPO_ROOT"
 if [ -d "apps/clusters" ]; then
     git add apps/clusters/
 fi
+if [ -d "apps/kargo-configs" ]; then
+    git add apps/kargo-configs/
+fi
 
-echo "Cluster directories generated and staged."
+echo "Generated files staged."
 

@@ -1,0 +1,14 @@
+# GENERATED - DO NOT EDIT
+# Source: apps/workloads/simple-echo-server/app-config.yaml
+# Run 'go run scripts/generate-kargo-pipelines.go' to regenerate
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: simple-echo-server
+  namespace: simple-echo-server
+spec:
+  subscriptions:
+    - git:
+        repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+        includePaths:
+          - apps/workloads/simple-echo-server/**

@@ -29,6 +29,10 @@ spec:
       # App name from directory: apps/clusters/<cluster>/workloads/[app-name]/app-config.yaml
       #                          0    1        2         3         4
       name: '{{ `{{ index .path.segments 4 }}` }}'
+      annotations:
+        # Authorize Kargo to manage this Application
+        # Project = app name, Stage = cluster name
+        kargo.akuity.io/authorized-stage: '{{ `{{ index .path.segments 4 }}` }}:{{ .Values.clusterName }}'
     spec:
       project: default
       source:

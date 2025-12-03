@@ -1,0 +1,227 @@
+# GENERATED - DO NOT EDIT
+# Source: apps/infra/kargo/app-config.yaml
+# Run 'go run scripts/generate-kargo-pipelines.go' to regenerate
+#
+# Promotion flow: test → dev → staging → (prod-us, prod-eu, prod-au, infra)
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: test
+  namespace: kargo
+  labels:
+    kargo.akuity.io/shard: test
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: kargo
+      sources:
+        direct: true
+  promotionTemplate:
+    spec:
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+            checkout:
+              - fromFreight: true
+                path: ./src
+        - uses: argocd-update
+          config:
+            apps:
+              - name: kargo
+                sources:
+                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: dev
+  namespace: kargo
+  labels:
+    kargo.akuity.io/shard: dev
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: kargo
+      sources:
+        stages:
+          - test
+  promotionTemplate:
+    spec:
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+            checkout:
+              - fromFreight: true
+                path: ./src
+        - uses: argocd-update
+          config:
+            apps:
+              - name: kargo
+                sources:
+                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: staging
+  namespace: kargo
+  labels:
+    kargo.akuity.io/shard: staging
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: kargo
+      sources:
+        stages:
+          - dev
+  promotionTemplate:
+    spec:
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+            checkout:
+              - fromFreight: true
+                path: ./src
+        - uses: argocd-update
+          config:
+            apps:
+              - name: kargo
+                sources:
+                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: infra
+  namespace: kargo
+  labels:
+    kargo.akuity.io/shard: infra
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: kargo
+      sources:
+        stages:
+          - staging
+  promotionTemplate:
+    spec:
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+            checkout:
+              - fromFreight: true
+                path: ./src
+        - uses: argocd-update
+          config:
+            apps:
+              - name: kargo
+                sources:
+                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: prod-au
+  namespace: kargo
+  labels:
+    kargo.akuity.io/shard: prod-au
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: kargo
+      sources:
+        stages:
+          - staging
+  promotionTemplate:
+    spec:
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+            checkout:
+              - fromFreight: true
+                path: ./src
+        - uses: argocd-update
+          config:
+            apps:
+              - name: kargo
+                sources:
+                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: prod-eu
+  namespace: kargo
+  labels:
+    kargo.akuity.io/shard: prod-eu
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: kargo
+      sources:
+        stages:
+          - staging
+  promotionTemplate:
+    spec:
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+            checkout:
+              - fromFreight: true
+                path: ./src
+        - uses: argocd-update
+          config:
+            apps:
+              - name: kargo
+                sources:
+                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: prod-us
+  namespace: kargo
+  labels:
+    kargo.akuity.io/shard: prod-us
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: kargo
+      sources:
+        stages:
+          - staging
+  promotionTemplate:
+    spec:
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+            checkout:
+              - fromFreight: true
+                path: ./src
+        - uses: argocd-update
+          config:
+            apps:
+              - name: kargo
+                sources:
+                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
