@@ -37,7 +37,7 @@ spec:
               service:
                 name: {{ include "simple-go-http-server.fullname" $ }}
                 port:
-                  number: {{ $.Values.service.port }}
+                  name: http
           {{- end }}
     {{- end }}
 {{- end }}
