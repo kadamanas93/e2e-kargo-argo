@@ -10,6 +10,6 @@ spec:
   subscriptions:
     - git:
         repoURL: git@github.com:kadamanas93/e2e-kargo-argo.git/e2e-kargo-argo.git
-		branch: main
+        branch: main
         includePaths:
           - apps/infra/cert-manager/**
