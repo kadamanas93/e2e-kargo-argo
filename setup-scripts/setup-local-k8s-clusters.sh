@@ -45,6 +45,9 @@ PROXY_CONF_FILE="$PROJECT_ROOT/multi-cluster-proxy.conf"
 PROXY_CONTAINER="k3d-multi-cluster-proxy"
 DOCKER_NETWORK="k3d-multi-cluster"
 MAX_PORT=65535
+REGISTRY_NAME="registry.localhost"
+REGISTRY_PORT=5000
+REGISTRY_CONFIG_FILE="$PROJECT_ROOT/setup-scripts/registries.yaml"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -186,6 +189,80 @@ ensure_network() {
     fi
 }
 
+# Check if k3d registry exists
+registry_exists() {
+    local registry_name=$1
+    k3d registry get "$registry_name" >/dev/null 2>&1
+}
+
+# Check if any registry is using the specified port
+registry_port_in_use() {
+    local port=$1
+    local registries
+    registries=$(k3d registry list --no-headers 2>/dev/null | awk '{print $1}' || true)
+    
+    for reg in $registries; do
+        if docker port "$reg" 2>/dev/null | grep -q ":${port}"; then
+            echo "$reg"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Create k3d registry if it doesn't exist
+ensure_registry() {
+    local registry_name=$1
+    local registry_port=$2
+    local network_name=$3
+    local full_registry_name="k3d-${registry_name}"
+    
+    if registry_exists "$full_registry_name"; then
+        log_info "Registry '${full_registry_name}' already exists"
+        
+        # Check if it's on the correct network
+        if docker inspect "$full_registry_name" >/dev/null 2>&1; then
+            if docker inspect "$full_registry_name" | grep -q "\"${network_name}\"" 2>/dev/null; then
+                log_success "Registry '${full_registry_name}' is already on network '${network_name}'"
+            else
+                log_warn "Registry '${full_registry_name}' exists but may not be on network '${network_name}'"
+                log_info "Connecting registry to network..."
+                docker network connect "$network_name" "$full_registry_name" 2>/dev/null || {
+                    log_warn "Could not connect registry to network (may already be connected)"
+                }
+            fi
+        fi
+    else
+        # Check if port is available on host
+        if ! is_port_available "$registry_port"; then
+            log_error "Port ${registry_port} is already in use on the host. Cannot create registry."
+            log_info "Please free port ${registry_port} or use a different port."
+            exit 1
+        fi
+        
+        # Check if another registry is using this port
+        local existing_reg
+        if existing_reg=$(registry_port_in_use "$registry_port"); then
+            log_warn "Another registry '${existing_reg}' may be using port ${registry_port}"
+            log_info "Attempting to create registry anyway (k3d will handle port conflicts)..."
+        fi
+        
+        log_info "Creating k3d registry: ${full_registry_name} on port ${registry_port}"
+        local error_output
+        error_output=$(k3d registry create "$registry_name" \
+            --port "${registry_port}" \
+            --default-network "$network_name" 2>&1)
+        
+        if [ $? -eq 0 ]; then
+            log_success "Created registry: ${full_registry_name}"
+        else
+            log_error "Failed to create registry: ${full_registry_name}"
+            log_error "Error details: ${error_output}"
+            exit 1
+        fi
+    fi
+}
+
 # ==========================================
 # PRE-FLIGHT CHECKS
 # ==========================================
@@ -210,6 +287,22 @@ echo "events {} http {" > "$PROXY_CONF_FILE"
 # Create shared Docker network for cross-cluster communication
 log_info "Setting up shared Docker network..."
 ensure_network "$DOCKER_NETWORK"
+
+# Create local registry for image caching
+log_info "Setting up local image registry..."
+ensure_registry "$REGISTRY_NAME" "$REGISTRY_PORT" "$DOCKER_NETWORK"
+
+# Verify registry config file exists
+if [ ! -f "$REGISTRY_CONFIG_FILE" ]; then
+    log_warn "Registry config file not found at $REGISTRY_CONFIG_FILE, creating it..."
+    cat > "$REGISTRY_CONFIG_FILE" <<EOF
+mirrors:
+  "k3d-${REGISTRY_NAME}:${REGISTRY_PORT}":
+    endpoint:
+      - http://k3d-${REGISTRY_NAME}:${REGISTRY_PORT}
+EOF
+    log_success "Created registry config file: $REGISTRY_CONFIG_FILE"
+fi
 
 # ==========================================
 # MAIN LOOP
@@ -276,6 +369,8 @@ do
         if ! k3d cluster create "$CLUSTER_NAME" \
             -p "$ASSIGNED_PORT:80@loadbalancer" \
             --network "$DOCKER_NETWORK" \
+            --registry-use "k3d-${REGISTRY_NAME}:${REGISTRY_PORT}" \
+            --registry-config "$REGISTRY_CONFIG_FILE" \
             --wait >/dev/null 2>&1; then
             # Check if the error is because cluster already exists
             if cluster_exists "$CLUSTER_NAME"; then

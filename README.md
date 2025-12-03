@@ -93,8 +93,10 @@ cp values-credentials.yaml.template values-credentials.yaml
 ```
 e2e-kargo-argo/
 ├── setup-scripts/
-│   ├── setup-local-k8s-clusters.sh  # Creates k3d clusters + nginx proxy
+│   ├── setup-local-k8s-clusters.sh  # Creates k3d clusters + nginx proxy + registry
+|   ├── registries.yaml               # Registry configuration for k3d clusters
 │   ├── cleanup-clusters.sh           # Deletes clusters and cleans up
+│   ├── cleanup-registry.sh           # Deletes local registry (separate from clusters)
 │   └── bootstrap.sh                  # Installs ArgoCD in all clusters
 ├── values-credentials.yaml.template  # Template for Git credentials
 ├── apps/
@@ -124,6 +126,7 @@ Creates 7 k3d clusters with:
 - Shared Docker network (`k3d-multi-cluster`) for cross-cluster communication
 - Port mappings for ingress (8080-8086)
 - Nginx reverse proxy on port 80 for `*.local` domain routing
+- Local image registry (`k3d-registry.localhost:5000`) for faster image pulls and caching
 
 ### cleanup-clusters.sh
 
@@ -134,6 +137,20 @@ Creates 7 k3d clusters with:
 # Delete and recreate fresh
 ./setup-scripts/cleanup-clusters.sh --reset
 ```
+
+**Note:** The local registry is NOT removed by this script to preserve cached images for faster cluster resets. Use `cleanup-registry.sh` to remove the registry separately.
+
+### cleanup-registry.sh
+
+```bash
+# Delete the local registry (removes all cached images)
+./setup-scripts/cleanup-registry.sh
+
+# Delete registry and config file
+./setup-scripts/cleanup-registry.sh --remove-config
+```
+
+**Warning:** This will delete all cached images in the registry!
 
 ### bootstrap.sh
 
@@ -245,3 +262,31 @@ docker network inspect k3d-multi-cluster
 # Test connectivity from one cluster to another
 kubectl run test --rm -it --image=curlimages/curl -- curl http://kargo.infra.local
 ```
+
+### Using the Local Registry
+
+The setup includes a local image registry at `k3d-registry.localhost:5000` that all clusters use. This speeds up deployments by caching images locally.
+
+**Push images to the registry:**
+```bash
+# Tag your image
+docker tag myapp:latest k3d-registry.localhost:5000/myapp:latest
+
+# Push to registry (from your local machine, use localhost:5000)
+docker tag myapp:latest localhost:5000/myapp:latest
+docker push localhost:5000/myapp:latest
+
+# Use in your deployments
+# Image: k3d-registry.localhost:5000/myapp:latest
+```
+
+**Check registry contents:**
+```bash
+# List repositories
+curl http://localhost:5000/v2/_catalog
+
+# List tags for a repository
+curl http://localhost:5000/v2/myapp/tags/list
+```
+
+**Note:** When pushing from your local machine, use `localhost:5000` (the host port). When referencing in Kubernetes manifests, use `k3d-registry.localhost:5000` (the container name).

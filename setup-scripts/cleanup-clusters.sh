@@ -20,6 +20,7 @@ CLUSTERS=("test" "dev" "staging" "prod-us" "prod-eu" "prod-au" "infra")
 PROXY_CONF_FILE="$PROJECT_ROOT/multi-cluster-proxy.conf"
 PROXY_CONTAINER="k3d-multi-cluster-proxy"
 DOCKER_NETWORK="k3d-multi-cluster"
+REGISTRY_NAME="registry.localhost"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -84,6 +85,10 @@ usage() {
     echo "  2. Remove the nginx proxy container"
     echo "  3. Remove the shared Docker network"
     echo "  4. Clean up generated config files"
+    echo ""
+    echo "Note: The local registry (k3d-${REGISTRY_NAME}) is NOT removed"
+    echo "      to preserve cached images for cluster resets."
+    echo "      Use cleanup-registry.sh to remove the registry separately."
 }
 
 # ==========================================
