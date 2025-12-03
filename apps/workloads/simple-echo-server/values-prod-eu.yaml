@@ -1,0 +1,5 @@
+# Simple echo server values for: prod-eu cluster
+
+replicaCount: 3
+
+message: "Hello from simple-echo-server on prod-eu cluster!"

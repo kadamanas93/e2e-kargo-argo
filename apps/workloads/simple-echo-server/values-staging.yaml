@@ -1,0 +1,5 @@
+# Simple echo server values for: staging cluster
+
+replicaCount: 1
+
+message: "Hello from simple-echo-server on staging cluster!"

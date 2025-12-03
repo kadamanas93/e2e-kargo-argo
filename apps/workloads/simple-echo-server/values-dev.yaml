@@ -1,0 +1,14 @@
+# Simple echo server values for: dev cluster
+
+replicaCount: 1
+
+message: "Hello from simple-echo-server on dev cluster!"
+
+resources:
+  limits:
+    cpu: 50m
+    memory: 64Mi
+  requests:
+    cpu: 25m
+    memory: 32Mi
+
