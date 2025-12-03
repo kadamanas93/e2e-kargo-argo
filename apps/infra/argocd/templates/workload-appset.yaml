@@ -46,8 +46,8 @@ spec:
         automated:
           prune: true
           selfHeal: true
-      syncOptions:
-        - CreateNamespace=true
+        syncOptions:
+          - CreateNamespace=true
   # Filter apps based on targetClusters in app-config.yaml
   # If current cluster is not in targetClusters, set empty name to skip Application creation
   templatePatch: |
