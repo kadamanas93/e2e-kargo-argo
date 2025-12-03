@@ -296,9 +296,6 @@ metadata:
 
 // generateWarehouse generates the Kargo Warehouse resource
 func generateWarehouse(appDir string, app AppInfo, gitRepoURL string) error {
-	// Note: includePaths filter is intentionally omitted as it was causing
-	// "No commits discovered" issues. All apps share the same repo commits
-	// for now. Path filtering can be added back once the issue is resolved.
 	content := fmt.Sprintf(`# GENERATED - DO NOT EDIT
 # Source: %s/app-config.yaml
 # Run 'go run scripts/generate-kargo-pipelines.go' to regenerate
@@ -312,7 +309,9 @@ spec:
     - git:
         repoURL: %s
         branch: main
-`, app.SourcePath, app.Name, app.Name, gitRepoURL)
+        includePaths:
+          - %s
+`, app.SourcePath, app.Name, app.Name, gitRepoURL, app.SourcePath)
 
 	path := filepath.Join(appDir, "warehouse.yaml")
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
