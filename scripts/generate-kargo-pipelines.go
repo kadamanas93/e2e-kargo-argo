@@ -440,9 +440,8 @@ kind: Stage
 metadata:
   name: %s
   namespace: %s
-  labels:
-    kargo.akuity.io/shard: %s
 spec:
+  shard: %s
 %s
   promotionTemplate:
     spec:

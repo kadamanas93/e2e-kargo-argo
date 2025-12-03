@@ -8,9 +8,8 @@ kind: Stage
 metadata:
   name: test
   namespace: kargo
-  labels:
-    kargo.akuity.io/shard: test
 spec:
+  shard: test
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -39,9 +38,8 @@ kind: Stage
 metadata:
   name: dev
   namespace: kargo
-  labels:
-    kargo.akuity.io/shard: dev
 spec:
+  shard: dev
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -71,9 +69,8 @@ kind: Stage
 metadata:
   name: staging
   namespace: kargo
-  labels:
-    kargo.akuity.io/shard: staging
 spec:
+  shard: staging
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -103,9 +100,8 @@ kind: Stage
 metadata:
   name: infra
   namespace: kargo
-  labels:
-    kargo.akuity.io/shard: infra
 spec:
+  shard: infra
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -135,9 +131,8 @@ kind: Stage
 metadata:
   name: prod-au
   namespace: kargo
-  labels:
-    kargo.akuity.io/shard: prod-au
 spec:
+  shard: prod-au
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -167,9 +162,8 @@ kind: Stage
 metadata:
   name: prod-eu
   namespace: kargo
-  labels:
-    kargo.akuity.io/shard: prod-eu
 spec:
+  shard: prod-eu
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -199,9 +193,8 @@ kind: Stage
 metadata:
   name: prod-us
   namespace: kargo
-  labels:
-    kargo.akuity.io/shard: prod-us
 spec:
+  shard: prod-us
   requestedFreight:
     - origin:
         kind: Warehouse
