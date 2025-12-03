@@ -9,6 +9,6 @@ metadata:
 spec:
   subscriptions:
     - git:
-        repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
+        repoURL: git@github.com:kadamanas93/e2e-kargo-argo.git
         includePaths:
           - apps/workloads/simple-echo-server/**

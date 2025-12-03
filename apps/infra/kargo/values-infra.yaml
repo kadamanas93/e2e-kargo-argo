@@ -61,6 +61,12 @@ kargo:
     # It will process all resources not explicitly assigned to a shard
     isDefault: true
     
+    # Global credentials - shared across all Kargo projects
+    # Secret is created by setup-scripts/setup-kargo-credentials.sh
+    globalCredentials:
+      namespaces:
+        - kargo-credentials
+    
     # ArgoCD integration (for the infra cluster's ArgoCD)
     argocd:
       integrationEnabled: true

@@ -44,6 +44,11 @@ type CredentialsConfig struct {
 	GitRepo struct {
 		URL string `yaml:"url"`
 	} `yaml:"gitRepo"`
+	Kargo struct {
+		Git struct {
+			RepoURL string `yaml:"repoURL"`
+		} `yaml:"git"`
+	} `yaml:"kargo"`
 }
 
 func main() {
@@ -56,13 +61,17 @@ func main() {
 
 	fmt.Printf("Repository root: %s\n", repoRoot)
 
-	// Get Git repo URL
+	// Get Git repo URL (HTTPS for ArgoCD references)
 	gitRepoURL, err := getGitRepoURL(repoRoot)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting Git repo URL: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Git repo URL: %s\n", gitRepoURL)
+	fmt.Printf("Git repo URL (HTTPS): %s\n", gitRepoURL)
+
+	// Get Kargo Git repo URL (SSH for Warehouse subscriptions)
+	kargoGitRepoURL := getKargoGitRepoURL(repoRoot, gitRepoURL)
+	fmt.Printf("Kargo Git repo URL (SSH): %s\n", kargoGitRepoURL)
 
 	// Discover all apps
 	apps, err := discoverApps(repoRoot)
@@ -85,7 +94,7 @@ func main() {
 	// Generate Kargo resources for each app
 	for _, app := range apps {
 		fmt.Printf("\nGenerating Kargo configs for %s/%s...\n", app.Type, app.Name)
-		if err := generateKargoConfigs(kargoConfigsDir, app, gitRepoURL); err != nil {
+		if err := generateKargoConfigs(kargoConfigsDir, app, gitRepoURL, kargoGitRepoURL); err != nil {
 			fmt.Fprintf(os.Stderr, "Error generating Kargo configs for %s: %v\n", app.Name, err)
 			os.Exit(1)
 		}
@@ -132,6 +141,44 @@ func getGitRepoURL(repoRoot string) (string, error) {
 	}
 
 	return "", fmt.Errorf("GIT_REPO_URL not set and values-credentials.yaml not found or invalid")
+}
+
+// getKargoGitRepoURL gets the SSH Git URL for Kargo Warehouses
+// Falls back to converting HTTPS URL to SSH format if kargo.git.repoURL is not set
+func getKargoGitRepoURL(repoRoot string, httpsURL string) string {
+	// First try environment variable
+	if url := os.Getenv("KARGO_GIT_REPO_URL"); url != "" {
+		return url
+	}
+
+	// Try values-credentials.yaml kargo.git.repoURL
+	credentialsPath := filepath.Join(repoRoot, "values-credentials.yaml")
+	if data, err := os.ReadFile(credentialsPath); err == nil {
+		var config CredentialsConfig
+		if err := yaml.Unmarshal(data, &config); err == nil && config.Kargo.Git.RepoURL != "" {
+			// Append repo name to the SSH base URL
+			// e.g., git@github.com:user + /repo.git = git@github.com:user/repo.git
+			repoName := extractRepoName(httpsURL)
+			if repoName != "" {
+				return config.Kargo.Git.RepoURL + "/" + repoName
+			}
+			return config.Kargo.Git.RepoURL
+		}
+	}
+
+	// Fall back to HTTPS URL (will work if credentials are configured for HTTPS)
+	return httpsURL
+}
+
+// extractRepoName extracts the repository name from a Git URL
+// e.g., "https://github.com/user/repo.git" -> "repo.git"
+func extractRepoName(url string) string {
+	// Handle URLs like https://github.com/user/repo.git
+	parts := strings.Split(url, "/")
+	if len(parts) >= 2 {
+		return parts[len(parts)-1]
+	}
+	return ""
 }
 
 // discoverApps finds all apps in apps/workloads/ and apps/infra/
@@ -220,7 +267,9 @@ func readAppConfig(path string) (*AppConfig, error) {
 }
 
 // generateKargoConfigs generates all Kargo resources for an app
-func generateKargoConfigs(kargoConfigsDir string, app AppInfo, gitRepoURL string) error {
+// gitRepoURL: HTTPS URL for ArgoCD references
+// kargoGitRepoURL: SSH URL for Warehouse subscriptions
+func generateKargoConfigs(kargoConfigsDir string, app AppInfo, gitRepoURL string, kargoGitRepoURL string) error {
 	appDir := filepath.Join(kargoConfigsDir, app.Name)
 	if err := os.MkdirAll(appDir, 0755); err != nil {
 		return fmt.Errorf("creating directory: %w", err)
@@ -236,12 +285,12 @@ func generateKargoConfigs(kargoConfigsDir string, app AppInfo, gitRepoURL string
 		return fmt.Errorf("generating project: %w", err)
 	}
 
-	// Generate Warehouse
-	if err := generateWarehouse(appDir, app, gitRepoURL); err != nil {
+	// Generate Warehouse (uses SSH URL for Git subscription)
+	if err := generateWarehouse(appDir, app, kargoGitRepoURL); err != nil {
 		return fmt.Errorf("generating warehouse: %w", err)
 	}
 
-	// Generate Stages
+	// Generate Stages (uses HTTPS URL for ArgoCD updates)
 	if err := generateStages(appDir, app, gitRepoURL); err != nil {
 		return fmt.Errorf("generating stages: %w", err)
 	}
