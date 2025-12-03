@@ -459,7 +459,6 @@ type StageInfo struct {
 // generateStageYAML generates the YAML for a single stage
 func generateStageYAML(app AppInfo, stage StageInfo, gitRepoURL string) string {
 	var requestedFreight string
-	var autoPromotion string
 
 	if stage.Upstream == "" {
 		// First stage - get directly from warehouse, no auto-promotion
@@ -470,19 +469,16 @@ func generateStageYAML(app AppInfo, stage StageInfo, gitRepoURL string) string {
       sources:
         direct: true`, app.Name)
 	} else {
-		// Downstream stage - get from upstream stage with auto-promotion
+		// Downstream stage - get from upstream stage with MatchUpstream auto-promotion
 		requestedFreight = fmt.Sprintf(`  requestedFreight:
     - origin:
         kind: Warehouse
         name: %s
       sources:
         stages:
-          - %s`, app.Name, stage.Upstream)
-		// Only allow auto-promotion from the immediate upstream stage
-		autoPromotion = fmt.Sprintf(`  autoPromotion:
-    allowedUpstreamStages:
-      - %s
-`, stage.Upstream)
+          - %s
+        autoPromotionOptions:
+          selectionPolicy: MatchUpstream`, app.Name, stage.Upstream)
 	}
 
 	return fmt.Sprintf(`apiVersion: kargo.akuity.io/v1alpha1
@@ -492,7 +488,7 @@ metadata:
   namespace: %s
 spec:
   shard: %s
-%s%s
+%s
   promotionTemplate:
     spec:
       steps:
@@ -500,5 +496,5 @@ spec:
           config:
             apps:
               - name: %s
-`, stage.Name, app.Name, stage.Name, autoPromotion, requestedFreight, app.Name)
+`, stage.Name, app.Name, stage.Name, requestedFreight, app.Name)
 }

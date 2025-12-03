@@ -31,9 +31,6 @@ metadata:
   namespace: cert-manager
 spec:
   shard: dev
-  autoPromotion:
-    allowedUpstreamStages:
-      - test
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -41,6 +38,8 @@ spec:
       sources:
         stages:
           - test
+        autoPromotionOptions:
+          selectionPolicy: MatchUpstream
   promotionTemplate:
     spec:
       steps:
@@ -56,9 +55,6 @@ metadata:
   namespace: cert-manager
 spec:
   shard: staging
-  autoPromotion:
-    allowedUpstreamStages:
-      - dev
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -66,6 +62,8 @@ spec:
       sources:
         stages:
           - dev
+        autoPromotionOptions:
+          selectionPolicy: MatchUpstream
   promotionTemplate:
     spec:
       steps:
@@ -81,9 +79,6 @@ metadata:
   namespace: cert-manager
 spec:
   shard: infra
-  autoPromotion:
-    allowedUpstreamStages:
-      - staging
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -91,6 +86,8 @@ spec:
       sources:
         stages:
           - staging
+        autoPromotionOptions:
+          selectionPolicy: MatchUpstream
   promotionTemplate:
     spec:
       steps:
@@ -106,9 +103,6 @@ metadata:
   namespace: cert-manager
 spec:
   shard: prod-au
-  autoPromotion:
-    allowedUpstreamStages:
-      - staging
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -116,6 +110,8 @@ spec:
       sources:
         stages:
           - staging
+        autoPromotionOptions:
+          selectionPolicy: MatchUpstream
   promotionTemplate:
     spec:
       steps:
@@ -131,9 +127,6 @@ metadata:
   namespace: cert-manager
 spec:
   shard: prod-eu
-  autoPromotion:
-    allowedUpstreamStages:
-      - staging
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -141,6 +134,8 @@ spec:
       sources:
         stages:
           - staging
+        autoPromotionOptions:
+          selectionPolicy: MatchUpstream
   promotionTemplate:
     spec:
       steps:
@@ -156,9 +151,6 @@ metadata:
   namespace: cert-manager
 spec:
   shard: prod-us
-  autoPromotion:
-    allowedUpstreamStages:
-      - staging
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -166,6 +158,8 @@ spec:
       sources:
         stages:
           - staging
+        autoPromotionOptions:
+          selectionPolicy: MatchUpstream
   promotionTemplate:
     spec:
       steps:
