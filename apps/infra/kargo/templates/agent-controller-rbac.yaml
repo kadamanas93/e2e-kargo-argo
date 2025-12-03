@@ -1,0 +1,27 @@
+{{- if and (not .Values.shardController.controlPlane.enabled) .Values.kargo.controller.enabled }}
+# RBAC resources for Kargo controller in agent clusters
+# These ensure the controller can authenticate to the local cluster's API server
+# (separate from the kubeconfig secret used to connect to the control plane)
+#
+# The Kargo Helm chart creates the ServiceAccount, ClusterRole, and ClusterRoleBinding,
+# but in Kubernetes 1.24+, ServiceAccount tokens are not auto-created.
+# This template ensures a token Secret exists for the controller ServiceAccount.
+#
+# Note: The ServiceAccount name is typically "kargo-controller" but may vary.
+# If this doesn't work, check the actual ServiceAccount name created by the Kargo chart
+# and update the annotation below.
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kargo-controller-token
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    kubernetes.io/service-account.name: kargo-controller
+  labels:
+    app.kubernetes.io/name: kargo
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+type: kubernetes.io/service-account-token
+{{- end }}
+
