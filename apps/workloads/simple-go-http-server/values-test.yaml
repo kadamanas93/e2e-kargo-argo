@@ -1,0 +1,22 @@
+# Simple go http server values for: test cluster
+
+replicaCount: 1
+
+environmentVariables:
+  - name: Environment
+    value: "test"
+
+resources:
+  limits:
+    cpu: 50m
+    memory: 64Mi
+  requests:
+    cpu: 25m
+    memory: 32Mi
+
+ingress:
+  hosts:
+    - host: simple-go-http-server.test.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific

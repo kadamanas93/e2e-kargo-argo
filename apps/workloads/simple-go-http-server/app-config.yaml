@@ -1,0 +1,7 @@
+targetClusters:
+  - test
+  - dev
+  - staging
+  - prod-us
+  - prod-eu
+  - prod-au

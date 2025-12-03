@@ -1,0 +1,14 @@
+# Simple go http server values for: prod-au cluster
+
+replicaCount: 3
+
+environmentVariables:
+  - name: Environment
+    value: "prod-au"
+
+ingress:
+  hosts:
+    - host: simple-go-http-server.prod-au.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific

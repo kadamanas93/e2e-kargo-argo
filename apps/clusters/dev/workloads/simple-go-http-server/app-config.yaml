@@ -1,0 +1,4 @@
+# GENERATED - DO NOT EDIT
+# Source: apps/workloads/simple-go-http-server/app-config.yaml
+# Run 'go run scripts/generate-configs.go' to regenerate
+chartPath: apps/workloads/simple-go-http-server

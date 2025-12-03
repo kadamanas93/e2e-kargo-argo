@@ -1,0 +1,22 @@
+# Simple go http server values for: dev cluster
+
+replicaCount: 1
+
+environmentVariables:
+  - name: Environment
+    value: "dev"
+
+resources:
+  limits:
+    cpu: 50m
+    memory: 64Mi
+  requests:
+    cpu: 25m
+    memory: 32Mi
+
+ingress:
+  hosts:
+    - host: simple-go-http-server.dev.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
