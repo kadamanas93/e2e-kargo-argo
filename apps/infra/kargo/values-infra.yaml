@@ -8,6 +8,12 @@ shardController:
     enabled: true
     serviceAccountName: kargo-shard-controller
 
+# Enable global credentials namespace and RBAC
+# Credentials are created by: ./setup-scripts/setup-kargo-credentials.sh
+globalCredentials:
+  enabled: true
+  namespace: kargo-credentials
+
 kargo:
   # API Server - enabled only in control plane
   api:

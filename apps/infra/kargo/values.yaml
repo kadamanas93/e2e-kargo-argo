@@ -38,3 +38,9 @@ shardController:
   controlPlane:
     enabled: false
     serviceAccountName: kargo-shard-controller
+
+# Global credentials configuration
+# Creates namespace and RBAC for shared credentials across all Kargo projects
+globalCredentials:
+  enabled: false
+  namespace: kargo-credentials
