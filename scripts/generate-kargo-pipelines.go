@@ -436,6 +436,12 @@ func generateStageYAML(app AppInfo, stage StageInfo, gitRepoURL string) string {
           - %s`, app.Name, stage.Upstream)
 	}
 
+	// Auto-promote from upstream for all stages except test (first stage)
+	autoPromotion := ""
+	if stage.Name != "test" {
+		autoPromotion = "  autoPromotionEnabled: true\n"
+	}
+
 	return fmt.Sprintf(`apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
@@ -443,7 +449,7 @@ metadata:
   namespace: %s
 spec:
   shard: %s
-%s
+%s%s
   promotionTemplate:
     spec:
       steps:
@@ -451,5 +457,5 @@ spec:
           config:
             apps:
               - name: %s
-`, stage.Name, app.Name, stage.Name, requestedFreight, app.Name)
+`, stage.Name, app.Name, stage.Name, autoPromotion, requestedFreight, app.Name)
 }
