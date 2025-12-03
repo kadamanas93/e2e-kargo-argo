@@ -226,6 +226,9 @@ func generateKargoConfigs(kargoConfigsDir string, app AppInfo, gitRepoURL string
 		return fmt.Errorf("creating directory: %w", err)
 	}
 
+	// Build stage order for this app
+	stages := buildStageOrder(app.TargetClusters)
+
 	// Generate Namespace with Kargo label (allows Kargo to adopt existing namespaces)
 	if err := generateNamespace(appDir, app); err != nil {
 		return fmt.Errorf("generating namespace: %w", err)
@@ -236,13 +239,18 @@ func generateKargoConfigs(kargoConfigsDir string, app AppInfo, gitRepoURL string
 		return fmt.Errorf("generating project: %w", err)
 	}
 
+	// Generate ProjectConfig with promotion policies
+	if err := generateProjectConfig(appDir, app, stages); err != nil {
+		return fmt.Errorf("generating project config: %w", err)
+	}
+
 	// Generate Warehouse
 	if err := generateWarehouse(appDir, app, gitRepoURL); err != nil {
 		return fmt.Errorf("generating warehouse: %w", err)
 	}
 
 	// Generate Stages
-	if err := generateStages(appDir, app, gitRepoURL); err != nil {
+	if err := generateStagesFromList(appDir, app, stages, gitRepoURL); err != nil {
 		return fmt.Errorf("generating stages: %w", err)
 	}
 
@@ -294,6 +302,43 @@ metadata:
 	return nil
 }
 
+// generateProjectConfig generates the Kargo ProjectConfig resource
+// This enables auto-promotion for all stages except test
+func generateProjectConfig(appDir string, app AppInfo, stages []StageInfo) error {
+	// Build promotion policies - enable auto-promotion for all stages except test
+	var policies strings.Builder
+	for _, stage := range stages {
+		if stage.Name != "test" {
+			policies.WriteString(fmt.Sprintf(`    - stageSelector:
+        name: %s
+      autoPromotionEnabled: true
+`, stage.Name))
+		}
+	}
+
+	content := fmt.Sprintf(`# GENERATED - DO NOT EDIT
+# Source: %s/app-config.yaml
+# Run 'go run scripts/generate-kargo-pipelines.go' to regenerate
+#
+# ProjectConfig enables auto-promotion for all stages except test.
+# test stage requires manual promotion to initiate the pipeline.
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ProjectConfig
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  promotionPolicies:
+%s`, app.SourcePath, app.Name, app.Name, policies.String())
+
+	path := filepath.Join(appDir, "project-config.yaml")
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		return err
+	}
+	fmt.Printf("  Generated %s\n", path)
+	return nil
+}
+
 // generateWarehouse generates the Kargo Warehouse resource
 func generateWarehouse(appDir string, app AppInfo, gitRepoURL string) error {
 	content := fmt.Sprintf(`# GENERATED - DO NOT EDIT
@@ -322,10 +367,7 @@ spec:
 }
 
 // generateStages generates all Kargo Stage resources for an app
-func generateStages(appDir string, app AppInfo, gitRepoURL string) error {
-	// Build ordered list of stages based on target clusters
-	stages := buildStageOrder(app.TargetClusters)
-
+func generateStagesFromList(appDir string, app AppInfo, stages []StageInfo, gitRepoURL string) error {
 	var stagesContent strings.Builder
 	stagesContent.WriteString(fmt.Sprintf(`# GENERATED - DO NOT EDIT
 # Source: %s/app-config.yaml
@@ -417,8 +459,10 @@ type StageInfo struct {
 // generateStageYAML generates the YAML for a single stage
 func generateStageYAML(app AppInfo, stage StageInfo, gitRepoURL string) string {
 	var requestedFreight string
+	var autoPromotion string
+
 	if stage.Upstream == "" {
-		// First stage - get directly from warehouse
+		// First stage - get directly from warehouse, no auto-promotion
 		requestedFreight = fmt.Sprintf(`  requestedFreight:
     - origin:
         kind: Warehouse
@@ -426,7 +470,7 @@ func generateStageYAML(app AppInfo, stage StageInfo, gitRepoURL string) string {
       sources:
         direct: true`, app.Name)
 	} else {
-		// Downstream stage - get from upstream stage
+		// Downstream stage - get from upstream stage with auto-promotion
 		requestedFreight = fmt.Sprintf(`  requestedFreight:
     - origin:
         kind: Warehouse
@@ -434,12 +478,11 @@ func generateStageYAML(app AppInfo, stage StageInfo, gitRepoURL string) string {
       sources:
         stages:
           - %s`, app.Name, stage.Upstream)
-	}
-
-	// Auto-promote from upstream for all stages except test (first stage)
-	autoPromotion := ""
-	if stage.Name != "test" {
-		autoPromotion = "  autoPromotionEnabled: true\n"
+		// Only allow auto-promotion from the immediate upstream stage
+		autoPromotion = fmt.Sprintf(`  autoPromotion:
+    allowedUpstreamStages:
+      - %s
+`, stage.Upstream)
 	}
 
 	return fmt.Sprintf(`apiVersion: kargo.akuity.io/v1alpha1

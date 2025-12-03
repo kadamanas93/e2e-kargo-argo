@@ -31,7 +31,9 @@ metadata:
   namespace: cert-manager
 spec:
   shard: dev
-  autoPromotionEnabled: true
+  autoPromotion:
+    allowedUpstreamStages:
+      - test
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -54,7 +56,9 @@ metadata:
   namespace: cert-manager
 spec:
   shard: staging
-  autoPromotionEnabled: true
+  autoPromotion:
+    allowedUpstreamStages:
+      - dev
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -77,7 +81,9 @@ metadata:
   namespace: cert-manager
 spec:
   shard: infra
-  autoPromotionEnabled: true
+  autoPromotion:
+    allowedUpstreamStages:
+      - staging
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -100,7 +106,9 @@ metadata:
   namespace: cert-manager
 spec:
   shard: prod-au
-  autoPromotionEnabled: true
+  autoPromotion:
+    allowedUpstreamStages:
+      - staging
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -123,7 +131,9 @@ metadata:
   namespace: cert-manager
 spec:
   shard: prod-eu
-  autoPromotionEnabled: true
+  autoPromotion:
+    allowedUpstreamStages:
+      - staging
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -146,7 +156,9 @@ metadata:
   namespace: cert-manager
 spec:
   shard: prod-us
-  autoPromotionEnabled: true
+  autoPromotion:
+    allowedUpstreamStages:
+      - staging
   requestedFreight:
     - origin:
         kind: Warehouse
