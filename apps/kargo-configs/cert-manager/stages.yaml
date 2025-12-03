@@ -78,7 +78,6 @@ metadata:
   name: infra
   namespace: cert-manager
 spec:
-  shard: infra
   requestedFreight:
     - origin:
         kind: Warehouse

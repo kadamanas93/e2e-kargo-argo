@@ -481,14 +481,21 @@ func generateStageYAML(app AppInfo, stage StageInfo, gitRepoURL string) string {
           selectionPolicy: MatchUpstream`, app.Name, stage.Upstream)
 	}
 
+	// Infra stage uses default shard (no shard specified)
+	var shardField string
+	if stage.Name == "infra" {
+		shardField = ""
+	} else {
+		shardField = fmt.Sprintf("  shard: %s\n", stage.Name)
+	}
+
 	return fmt.Sprintf(`apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
   name: %s
   namespace: %s
 spec:
-  shard: %s
-%s
+%s%s
   promotionTemplate:
     spec:
       steps:
@@ -496,5 +503,5 @@ spec:
           config:
             apps:
               - name: %s
-`, stage.Name, app.Name, stage.Name, requestedFreight, app.Name)
+`, stage.Name, app.Name, shardField, requestedFreight, app.Name)
 }
