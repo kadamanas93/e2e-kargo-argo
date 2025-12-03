@@ -1,11 +1,13 @@
-// generate-kargo-pipelines.go
+// generate-configs.go
 // This script reads app-config.yaml files from apps/workloads/ and apps/infra/,
-// and generates Kargo resources (Project, Warehouse, Stages) under apps/kargo-configs/.
+// and generates:
+//   1. Cluster-specific directories under apps/clusters/ for ApplicationSet to discover
+//   2. Kargo resources (Project, Warehouse, Stages) under apps/kargo-configs/
 //
-// Usage: go run scripts/generate-kargo-pipelines.go
+// Usage: go run scripts/generate-configs.go
 //
 // The script is idempotent and safe to run multiple times.
-// It regenerates all Kargo manifests on each run.
+// It regenerates all manifests on each run and removes stale directories.
 //
 // Environment variables:
 //   GIT_REPO_URL - Git repository URL (optional, reads from values-credentials.yaml if not set)
@@ -31,6 +33,11 @@ type AppConfig struct {
 	TargetClusters []string `yaml:"targetClusters"`
 }
 
+// GeneratedConfig represents the generated app-config.yaml for clusters
+type GeneratedConfig struct {
+	ChartPath string `yaml:"chartPath"`
+}
+
 // AppInfo holds information about a discovered app
 type AppInfo struct {
 	Name           string
@@ -46,6 +53,12 @@ type CredentialsConfig struct {
 	} `yaml:"gitRepo"`
 }
 
+// StageInfo holds information about a stage
+type StageInfo struct {
+	Name     string
+	Upstream string // Empty means get from warehouse directly
+}
+
 func main() {
 	// Find the repo root (where apps/ directory exists)
 	repoRoot, err := findRepoRoot()
@@ -56,7 +69,7 @@ func main() {
 
 	fmt.Printf("Repository root: %s\n", repoRoot)
 
-	// Get Git repo URL (used for both ArgoCD and Kargo Warehouses)
+	// Get Git repo URL (used for Kargo Warehouses)
 	gitRepoURL, err := getGitRepoURL(repoRoot)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting Git repo URL: %v\n", err)
@@ -73,7 +86,23 @@ func main() {
 
 	fmt.Printf("Discovered %d apps\n", len(apps))
 
-	// Generate Kargo configs directory
+	// Generate cluster directories
+	fmt.Println("\n=== Generating cluster directories ===")
+	clustersDir := filepath.Join(repoRoot, "apps", "clusters")
+	expectedStructure := buildExpectedStructure(apps)
+	if err := generateClusterDirs(clustersDir, apps); err != nil {
+		fmt.Fprintf(os.Stderr, "Error generating cluster directories: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Clean up stale directories
+	if err := cleanupStaleDirs(clustersDir, expectedStructure); err != nil {
+		fmt.Fprintf(os.Stderr, "Error cleaning up stale directories: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Generate Kargo configs
+	fmt.Println("\n=== Generating Kargo configs ===")
 	kargoConfigsDir := filepath.Join(repoRoot, "apps", "kargo-configs")
 
 	// Clean up existing configs
@@ -219,6 +248,158 @@ func readAppConfig(path string) (*AppConfig, error) {
 	return &config, nil
 }
 
+// buildExpectedStructure builds a map of cluster -> type -> app -> true
+func buildExpectedStructure(apps []AppInfo) map[string]map[string]map[string]bool {
+	structure := make(map[string]map[string]map[string]bool)
+
+	for _, app := range apps {
+		for _, cluster := range app.TargetClusters {
+			if structure[cluster] == nil {
+				structure[cluster] = make(map[string]map[string]bool)
+			}
+			if structure[cluster][app.Type] == nil {
+				structure[cluster][app.Type] = make(map[string]bool)
+			}
+			structure[cluster][app.Type][app.Name] = true
+		}
+	}
+
+	return structure
+}
+
+// generateClusterDirs creates the cluster-specific directories and app-config.yaml files
+func generateClusterDirs(clustersDir string, apps []AppInfo) error {
+	for _, app := range apps {
+		for _, cluster := range app.TargetClusters {
+			appDir := filepath.Join(clustersDir, cluster, app.Type, app.Name)
+
+			// Create directory
+			if err := os.MkdirAll(appDir, 0755); err != nil {
+				return fmt.Errorf("creating %s: %w", appDir, err)
+			}
+
+			// Generate app-config.yaml
+			configPath := filepath.Join(appDir, "app-config.yaml")
+			config := GeneratedConfig{
+				ChartPath: app.SourcePath,
+			}
+
+			data, err := yaml.Marshal(&config)
+			if err != nil {
+				return fmt.Errorf("marshaling config: %w", err)
+			}
+
+			// Add header comment
+			content := fmt.Sprintf("# GENERATED - DO NOT EDIT\n# Source: %s/app-config.yaml\n# Run 'go run scripts/generate-configs.go' to regenerate\n%s", app.SourcePath, string(data))
+
+			if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
+				return fmt.Errorf("writing %s: %w", configPath, err)
+			}
+
+			fmt.Printf("  Generated %s\n", configPath)
+		}
+	}
+
+	return nil
+}
+
+// cleanupStaleDirs removes directories that should no longer exist
+func cleanupStaleDirs(clustersDir string, expected map[string]map[string]map[string]bool) error {
+	// Check if clusters directory exists
+	if _, err := os.Stat(clustersDir); os.IsNotExist(err) {
+		return nil
+	}
+
+	// Get all clusters
+	clusterEntries, err := os.ReadDir(clustersDir)
+	if err != nil {
+		return err
+	}
+
+	for _, clusterEntry := range clusterEntries {
+		if !clusterEntry.IsDir() {
+			continue
+		}
+		cluster := clusterEntry.Name()
+
+		// Check each type (workloads, infra)
+		for _, appType := range []string{"workloads", "infra"} {
+			typeDir := filepath.Join(clustersDir, cluster, appType)
+			if _, err := os.Stat(typeDir); os.IsNotExist(err) {
+				continue
+			}
+
+			appEntries, err := os.ReadDir(typeDir)
+			if err != nil {
+				continue
+			}
+
+			for _, appEntry := range appEntries {
+				if !appEntry.IsDir() {
+					continue
+				}
+				appName := appEntry.Name()
+
+				// Check if this app should exist for this cluster
+				shouldExist := false
+				if expected[cluster] != nil && expected[cluster][appType] != nil {
+					shouldExist = expected[cluster][appType][appName]
+				}
+
+				if !shouldExist {
+					appDir := filepath.Join(typeDir, appName)
+					fmt.Printf("  Removing stale directory: %s\n", appDir)
+					if err := os.RemoveAll(appDir); err != nil {
+						return fmt.Errorf("removing %s: %w", appDir, err)
+					}
+				}
+			}
+
+			// Remove empty type directory
+			remaining, _ := os.ReadDir(typeDir)
+			if len(remaining) == 0 {
+				os.Remove(typeDir)
+			}
+		}
+
+		// Remove empty cluster directory
+		clusterDir := filepath.Join(clustersDir, cluster)
+		remaining, _ := os.ReadDir(clusterDir)
+		if len(remaining) == 0 {
+			os.Remove(clusterDir)
+		}
+	}
+
+	// Print summary of expected structure
+	fmt.Println("\nExpected structure:")
+	var clusters []string
+	for cluster := range expected {
+		clusters = append(clusters, cluster)
+	}
+	sort.Strings(clusters)
+
+	for _, cluster := range clusters {
+		types := expected[cluster]
+		var typeNames []string
+		for t := range types {
+			typeNames = append(typeNames, t)
+		}
+		sort.Strings(typeNames)
+
+		for _, t := range typeNames {
+			apps := types[t]
+			var appNames []string
+			for app := range apps {
+				appNames = append(appNames, app)
+			}
+			sort.Strings(appNames)
+			fmt.Printf("  %s/%s: %s\n", cluster, t, strings.Join(appNames, ", "))
+		}
+	}
+
+	return nil
+}
+
 // generateKargoConfigs generates all Kargo resources for an app
 func generateKargoConfigs(kargoConfigsDir string, app AppInfo, gitRepoURL string) error {
 	appDir := filepath.Join(kargoConfigsDir, app.Name)
@@ -262,7 +443,7 @@ func generateKargoConfigs(kargoConfigsDir string, app AppInfo, gitRepoURL string
 func generateNamespace(appDir string, app AppInfo) error {
 	content := fmt.Sprintf(`# GENERATED - DO NOT EDIT
 # Source: %s/app-config.yaml
-# Run 'go run scripts/generate-kargo-pipelines.go' to regenerate
+# Run 'go run scripts/generate-configs.go' to regenerate
 #
 # This namespace resource labels the namespace for Kargo project adoption.
 # If the namespace already exists (e.g., created by the app deployment),
@@ -287,7 +468,7 @@ metadata:
 func generateProject(appDir string, app AppInfo) error {
 	content := fmt.Sprintf(`# GENERATED - DO NOT EDIT
 # Source: %s/app-config.yaml
-# Run 'go run scripts/generate-kargo-pipelines.go' to regenerate
+# Run 'go run scripts/generate-configs.go' to regenerate
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Project
 metadata:
@@ -318,7 +499,7 @@ func generateProjectConfig(appDir string, app AppInfo, stages []StageInfo) error
 
 	content := fmt.Sprintf(`# GENERATED - DO NOT EDIT
 # Source: %s/app-config.yaml
-# Run 'go run scripts/generate-kargo-pipelines.go' to regenerate
+# Run 'go run scripts/generate-configs.go' to regenerate
 #
 # ProjectConfig enables auto-promotion for all stages except test.
 # test stage requires manual promotion to initiate the pipeline.
@@ -343,7 +524,7 @@ spec:
 func generateWarehouse(appDir string, app AppInfo, gitRepoURL string) error {
 	content := fmt.Sprintf(`# GENERATED - DO NOT EDIT
 # Source: %s/app-config.yaml
-# Run 'go run scripts/generate-kargo-pipelines.go' to regenerate
+# Run 'go run scripts/generate-configs.go' to regenerate
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Warehouse
 metadata:
@@ -371,7 +552,7 @@ func generateStagesFromList(appDir string, app AppInfo, stages []StageInfo, gitR
 	var stagesContent strings.Builder
 	stagesContent.WriteString(fmt.Sprintf(`# GENERATED - DO NOT EDIT
 # Source: %s/app-config.yaml
-# Run 'go run scripts/generate-kargo-pipelines.go' to regenerate
+# Run 'go run scripts/generate-configs.go' to regenerate
 #
 # Promotion flow: test → dev → staging → (prod-us, prod-eu, prod-au, infra)
 `, app.SourcePath))
@@ -448,12 +629,6 @@ func buildStageOrder(targetClusters []string) []StageInfo {
 	}
 
 	return stages
-}
-
-// StageInfo holds information about a stage
-type StageInfo struct {
-	Name     string
-	Upstream string // Empty means get from warehouse directly
 }
 
 // generateStageYAML generates the YAML for a single stage

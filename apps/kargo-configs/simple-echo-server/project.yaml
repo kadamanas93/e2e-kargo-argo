@@ -1,6 +1,6 @@
 # GENERATED - DO NOT EDIT
 # Source: apps/workloads/simple-echo-server/app-config.yaml
-# Run 'go run scripts/generate-kargo-pipelines.go' to regenerate
+# Run 'go run scripts/generate-configs.go' to regenerate
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Project
 metadata:

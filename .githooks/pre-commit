@@ -1,9 +1,9 @@
 #!/bin/bash
 # Pre-commit hook to generate cluster-specific app directories and Kargo pipelines
 # 
-# This hook runs Go scripts that:
-# 1. Generate cluster-specific directories under apps/clusters/ for ApplicationSet
-# 2. Generate Kargo pipeline configs under apps/kargo-configs/
+# This hook runs a Go script that:
+# 1. Generates cluster-specific directories under apps/clusters/ for ApplicationSet
+# 2. Generates Kargo pipeline configs under apps/kargo-configs/
 #
 # Setup: git config core.hooksPath .githooks
 
@@ -14,31 +14,21 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 # Check if Go is installed
 if ! command -v go &> /dev/null; then
     echo "Warning: Go is not installed, skipping code generation"
-    echo "Install Go and run the scripts manually:"
-    echo "  go run scripts/generate-cluster-apps.go"
-    echo "  go run scripts/generate-kargo-pipelines.go"
+    echo "Install Go and run the script manually:"
+    echo "  go run scripts/generate-configs.go"
     exit 0
 fi
 
 # Run from the scripts directory (where go.mod is)
 cd "$REPO_ROOT/scripts"
 
-# Generate cluster-specific app directories
-CLUSTER_SCRIPT="generate-cluster-apps.go"
-if [ -f "$CLUSTER_SCRIPT" ]; then
-    echo "Generating cluster-specific app directories..."
-    go run "$CLUSTER_SCRIPT"
+# Generate cluster-specific app directories and Kargo pipeline configs
+GENERATE_SCRIPT="generate-configs.go"
+if [ -f "$GENERATE_SCRIPT" ]; then
+    echo "Generating cluster-specific app directories and Kargo pipeline configs..."
+    go run "$GENERATE_SCRIPT"
 else
-    echo "Warning: $CLUSTER_SCRIPT not found, skipping"
-fi
-
-# Generate Kargo pipeline configs
-KARGO_SCRIPT="generate-kargo-pipelines.go"
-if [ -f "$KARGO_SCRIPT" ]; then
-    echo "Generating Kargo pipeline configs..."
-    go run "$KARGO_SCRIPT"
-else
-    echo "Warning: $KARGO_SCRIPT not found, skipping"
+    echo "Warning: $GENERATE_SCRIPT not found, skipping"
 fi
 
 # Stage any generated/modified files
@@ -51,4 +41,3 @@ if [ -d "apps/kargo-configs" ]; then
 fi
 
 echo "Generated files staged."
-
