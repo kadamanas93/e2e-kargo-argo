@@ -1,0 +1,40 @@
+#!/bin/bash
+# Pre-commit hook to generate cluster-specific app directories
+# 
+# This hook runs the Go script that reads app-config.yaml files and generates
+# the cluster-specific directories under apps/clusters/ that ApplicationSet needs.
+#
+# Setup: git config core.hooksPath .githooks
+
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SCRIPT_PATH="$REPO_ROOT/scripts/generate-cluster-apps.go"
+
+# Check if the script exists
+if [ ! -f "$SCRIPT_PATH" ]; then
+    echo "Warning: generate-cluster-apps.go not found, skipping cluster directory generation"
+    exit 0
+fi
+
+# Check if Go is installed
+if ! command -v go &> /dev/null; then
+    echo "Warning: Go is not installed, skipping cluster directory generation"
+    echo "Install Go and run 'go run scripts/generate-cluster-apps.go' manually"
+    exit 0
+fi
+
+echo "Generating cluster-specific app directories..."
+
+# Run the generator from the scripts directory (where go.mod is)
+cd "$REPO_ROOT/scripts"
+go run generate-cluster-apps.go
+
+# Stage any generated/modified files in apps/clusters/
+cd "$REPO_ROOT"
+if [ -d "apps/clusters" ]; then
+    git add apps/clusters/
+fi
+
+echo "Cluster directories generated and staged."
+

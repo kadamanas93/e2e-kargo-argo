@@ -1,0 +1,4 @@
+# GENERATED - DO NOT EDIT
+# Source: apps/infra/cert-manager/app-config.yaml
+# Run 'go run scripts/generate-cluster-apps.go' to regenerate
+chartPath: apps/infra/cert-manager
