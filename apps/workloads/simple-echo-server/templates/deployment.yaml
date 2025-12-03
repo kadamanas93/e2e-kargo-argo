@@ -19,7 +19,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - "-text={{ .Values.message }}"
+            - "-text={{ .Values.message }}. On version: {{ .Values.version }}"
             - "-listen=:{{ .Values.service.targetPort }}"
           ports:
             - name: http

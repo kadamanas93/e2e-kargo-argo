@@ -13,6 +13,7 @@ image:
 
 # Message to display
 message: "Hello from simple-echo-server!"
+version: "1.0.0"
 
 service:
   type: ClusterIP
