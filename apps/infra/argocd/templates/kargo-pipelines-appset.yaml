@@ -41,9 +41,10 @@ spec:
         # Kargo Project name = app name (namespace is created by Kargo Project)
         namespace: '{{ `{{ .path.basename }}` }}'
       syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
+        # Autosync disabled for debugging - manually sync to test changes
+        # automated:
+        #   prune: true
+        #   selfHeal: true
         syncOptions:
           # Don't create namespace - Kargo Project creates it
           - CreateNamespace=false

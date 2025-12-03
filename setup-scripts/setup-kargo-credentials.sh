@@ -2,8 +2,10 @@
 # ==========================================
 # KARGO GIT CREDENTIALS SETUP
 # ==========================================
-# This script creates a Kubernetes Secret containing SSH credentials
+# This script creates a Kubernetes Secret containing Git credentials
 # for Kargo Warehouses to access Git repositories.
+#
+# Supports both HTTPS (username/password or PAT) and SSH authentication.
 #
 # The secret is created in the kargo-credentials namespace and is
 # configured as a global credential that all Kargo projects can use.
@@ -24,7 +26,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Configuration
 CREDENTIALS_FILE="$PROJECT_ROOT/values-credentials.yaml"
 NAMESPACE="kargo-credentials"
-SECRET_NAME="git-ssh-credentials"
+SECRET_NAME="git-credentials"
 CONTEXT="k3d-infra"
 
 # Colors for output
@@ -55,19 +57,37 @@ fi
 log_info "Reading Kargo Git credentials from $CREDENTIALS_FILE..."
 
 REPO_URL=$(yq '.kargo.git.repoURL' "$CREDENTIALS_FILE")
-SSH_KEY=$(yq '.kargo.git.sshPrivateKey' "$CREDENTIALS_FILE")
+USERNAME=$(yq '.kargo.git.username // ""' "$CREDENTIALS_FILE")
+PASSWORD=$(yq '.kargo.git.password // ""' "$CREDENTIALS_FILE")
+SSH_KEY=$(yq '.kargo.git.sshPrivateKey // ""' "$CREDENTIALS_FILE")
 
 if [ -z "$REPO_URL" ] || [ "$REPO_URL" = "null" ]; then
     log_error "kargo.git.repoURL not found in $CREDENTIALS_FILE"
     exit 1
 fi
 
-if [ -z "$SSH_KEY" ] || [ "$SSH_KEY" = "null" ]; then
-    log_error "kargo.git.sshPrivateKey not found in $CREDENTIALS_FILE"
+log_info "Git repo URL: $REPO_URL"
+
+# Determine authentication type
+if [[ "$REPO_URL" == https://* ]]; then
+    AUTH_TYPE="https"
+    if [ -z "$USERNAME" ] || [ "$USERNAME" = "null" ] || [ -z "$PASSWORD" ] || [ "$PASSWORD" = "null" ]; then
+        log_error "HTTPS URL detected but kargo.git.username or kargo.git.password not found"
+        exit 1
+    fi
+    log_info "Authentication type: HTTPS (username/password)"
+elif [[ "$REPO_URL" == git@* ]]; then
+    AUTH_TYPE="ssh"
+    if [ -z "$SSH_KEY" ] || [ "$SSH_KEY" = "null" ]; then
+        log_error "SSH URL detected but kargo.git.sshPrivateKey not found"
+        exit 1
+    fi
+    log_info "Authentication type: SSH"
+else
+    log_error "Unsupported URL format: $REPO_URL"
+    log_error "Use https://... for HTTPS or git@... for SSH"
     exit 1
 fi
-
-log_info "Git repo URL: $REPO_URL"
 
 # Switch to infra context
 log_info "Using context: $CONTEXT"
@@ -76,14 +96,30 @@ kubectl config use-context "$CONTEXT" >/dev/null 2>&1 || {
     exit 1
 }
 
-# Create namespace if it doesn't exist
+# Create namespace if it doesn't exist (might already exist from Helm chart)
 log_info "Ensuring namespace $NAMESPACE exists..."
-kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - 2>/dev/null || true
 
-# Create the secret
+# Create the secret based on authentication type
 log_info "Creating/updating secret $SECRET_NAME in namespace $NAMESPACE..."
 
-kubectl apply -f - <<EOF
+if [ "$AUTH_TYPE" = "https" ]; then
+    kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: $SECRET_NAME
+  namespace: $NAMESPACE
+  labels:
+    kargo.akuity.io/cred-type: git
+type: Opaque
+stringData:
+  repoURL: "$REPO_URL"
+  username: "$USERNAME"
+  password: "$PASSWORD"
+EOF
+else
+    kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Secret
 metadata:
@@ -97,11 +133,11 @@ stringData:
   sshPrivateKey: |
 $(echo "$SSH_KEY" | sed 's/^/    /')
 EOF
+fi
 
 log_success "Kargo Git credentials configured!"
 echo ""
 log_info "The secret '$SECRET_NAME' has been created in namespace '$NAMESPACE'."
 log_info "Kargo controller is configured to look for credentials in this namespace."
 echo ""
-log_info "Warehouses using SSH URLs matching '$REPO_URL' will automatically use these credentials."
-
+log_info "Warehouses using URLs matching '$REPO_URL' will automatically use these credentials."

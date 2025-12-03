@@ -11,5 +11,4 @@ spec:
     - git:
         repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
         branch: main
-        includePaths:
-          - apps/infra/cert-manager/**
+        # includePaths removed for debugging
