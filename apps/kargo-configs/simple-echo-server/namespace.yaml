@@ -1,0 +1,13 @@
+# GENERATED - DO NOT EDIT
+# Source: apps/workloads/simple-echo-server/app-config.yaml
+# Run 'go run scripts/generate-kargo-pipelines.go' to regenerate
+#
+# This namespace resource labels the namespace for Kargo project adoption.
+# If the namespace already exists (e.g., created by the app deployment),
+# this will add the required label so Kargo can manage it as a Project.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: simple-echo-server
+  labels:
+    kargo.akuity.io/project: "true"

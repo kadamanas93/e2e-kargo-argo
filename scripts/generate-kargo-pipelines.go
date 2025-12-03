@@ -226,6 +226,11 @@ func generateKargoConfigs(kargoConfigsDir string, app AppInfo, gitRepoURL string
 		return fmt.Errorf("creating directory: %w", err)
 	}
 
+	// Generate Namespace with Kargo label (allows Kargo to adopt existing namespaces)
+	if err := generateNamespace(appDir, app); err != nil {
+		return fmt.Errorf("generating namespace: %w", err)
+	}
+
 	// Generate Project
 	if err := generateProject(appDir, app); err != nil {
 		return fmt.Errorf("generating project: %w", err)
@@ -241,6 +246,32 @@ func generateKargoConfigs(kargoConfigsDir string, app AppInfo, gitRepoURL string
 		return fmt.Errorf("generating stages: %w", err)
 	}
 
+	return nil
+}
+
+// generateNamespace generates a Namespace resource with Kargo project label
+// This allows Kargo to adopt existing namespaces that were created by other apps
+func generateNamespace(appDir string, app AppInfo) error {
+	content := fmt.Sprintf(`# GENERATED - DO NOT EDIT
+# Source: %s/app-config.yaml
+# Run 'go run scripts/generate-kargo-pipelines.go' to regenerate
+#
+# This namespace resource labels the namespace for Kargo project adoption.
+# If the namespace already exists (e.g., created by the app deployment),
+# this will add the required label so Kargo can manage it as a Project.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: %s
+  labels:
+    kargo.akuity.io/project: "true"
+`, app.SourcePath, app.Name)
+
+	path := filepath.Join(appDir, "namespace.yaml")
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		return err
+	}
+	fmt.Printf("  Generated %s\n", path)
 	return nil
 }
 
