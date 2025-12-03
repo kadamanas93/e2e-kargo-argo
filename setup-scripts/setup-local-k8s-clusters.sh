@@ -36,7 +36,7 @@ trap cleanup EXIT
 CLUSTERS=("test" "dev" "staging" "prod-us" "prod-eu" "prod-au" "infra")
 
 # 2. Define expected Apps (For /etc/hosts generation ONLY)
-APPS=("argocd" "kargo" "simple-echo-server")
+APPS=("argocd" "kargo" "simple-echo-server" "simple-go-http-server")
 
 # 3. Base Configuration
 START_PORT=8080
