@@ -357,6 +357,7 @@ spec:
   subscriptions:
     - git:
         repoURL: %s
+		branch: main
         includePaths:
           - %s/**
 `, app.SourcePath, app.Name, app.Name, gitRepoURL, app.SourcePath)
