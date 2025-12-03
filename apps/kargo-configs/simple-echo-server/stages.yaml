@@ -19,12 +19,6 @@ spec:
   promotionTemplate:
     spec:
       steps:
-        - uses: git-clone
-          config:
-            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-            checkout:
-              - fromFreight: true
-                path: ./src
         - uses: argocd-update
           config:
             apps:
@@ -47,12 +41,6 @@ spec:
   promotionTemplate:
     spec:
       steps:
-        - uses: git-clone
-          config:
-            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-            checkout:
-              - fromFreight: true
-                path: ./src
         - uses: argocd-update
           config:
             apps:
@@ -75,12 +63,6 @@ spec:
   promotionTemplate:
     spec:
       steps:
-        - uses: git-clone
-          config:
-            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-            checkout:
-              - fromFreight: true
-                path: ./src
         - uses: argocd-update
           config:
             apps:
@@ -103,12 +85,6 @@ spec:
   promotionTemplate:
     spec:
       steps:
-        - uses: git-clone
-          config:
-            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-            checkout:
-              - fromFreight: true
-                path: ./src
         - uses: argocd-update
           config:
             apps:
@@ -131,12 +107,6 @@ spec:
   promotionTemplate:
     spec:
       steps:
-        - uses: git-clone
-          config:
-            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-            checkout:
-              - fromFreight: true
-                path: ./src
         - uses: argocd-update
           config:
             apps:
@@ -159,12 +129,6 @@ spec:
   promotionTemplate:
     spec:
       steps:
-        - uses: git-clone
-          config:
-            repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-            checkout:
-              - fromFreight: true
-                path: ./src
         - uses: argocd-update
           config:
             apps:

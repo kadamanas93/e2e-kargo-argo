@@ -447,15 +447,9 @@ spec:
   promotionTemplate:
     spec:
       steps:
-        - uses: git-clone
-          config:
-            repoURL: %s
-            checkout:
-              - fromFreight: true
-                path: ./src
         - uses: argocd-update
           config:
             apps:
               - name: %s
-`, stage.Name, app.Name, stage.Name, requestedFreight, gitRepoURL, app.Name)
+`, stage.Name, app.Name, stage.Name, requestedFreight, app.Name)
 }
