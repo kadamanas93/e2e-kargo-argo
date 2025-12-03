@@ -29,9 +29,6 @@ spec:
           config:
             apps:
               - name: kargo
-                sources:
-                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -60,9 +57,6 @@ spec:
           config:
             apps:
               - name: kargo
-                sources:
-                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -91,9 +85,6 @@ spec:
           config:
             apps:
               - name: kargo
-                sources:
-                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -122,9 +113,6 @@ spec:
           config:
             apps:
               - name: kargo
-                sources:
-                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -153,9 +141,6 @@ spec:
           config:
             apps:
               - name: kargo
-                sources:
-                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -184,9 +169,6 @@ spec:
           config:
             apps:
               - name: kargo
-                sources:
-                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -215,6 +197,3 @@ spec:
           config:
             apps:
               - name: kargo
-                sources:
-                  - repoURL: https://github.com/kadamanas93/e2e-kargo-argo.git
-                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}

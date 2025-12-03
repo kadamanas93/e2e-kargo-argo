@@ -457,8 +457,5 @@ spec:
           config:
             apps:
               - name: %s
-                sources:
-                  - repoURL: %s
-                    desiredCommitFromStep: ${{ outputs['git-clone'].commit }}
-`, stage.Name, app.Name, stage.Name, requestedFreight, gitRepoURL, app.Name, gitRepoURL)
+`, stage.Name, app.Name, stage.Name, requestedFreight, gitRepoURL, app.Name)
 }
