@@ -110,7 +110,7 @@ setup_shard() {
     
     kubectl create secret generic "$SECRET_NAME" \
         --namespace "$KARGO_NAMESPACE" \
-        --from-literal=kubeconfig="$kubeconfig" \
+        --from-literal=kubeconfig.yaml="$kubeconfig" \
         --dry-run=client -o yaml | kubectl apply -f -
     
     log_info "✓ Created kubeconfig secret in ${cluster}"
