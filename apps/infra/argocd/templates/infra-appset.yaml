@@ -2,7 +2,7 @@
 # ApplicationSet for all infrastructure apps
 # Auto-discovers apps in apps/infra/* directory via app-config.yaml files
 # To add a new infra app: create apps/infra/<app-name>/ with Chart.yaml, values.yaml, app-config.yaml, and optionally values-<cluster>.yaml files
-# To scope an app to specific clusters: edit app-config.yaml and list only the desired clusters in targetClusters
+# To scope an app to specific clusters: edit app-config.yaml and set target-<cluster>: "true" or "false"
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -17,6 +17,11 @@ spec:
         revision: {{ .Values.gitRepo.revision }}
         files:
           - path: {{ .Values.gitRepo.path }}/infra/*/app-config.yaml
+        # Filter apps based on target-<cluster> keys in app-config.yaml
+        # Only apps with target-<clusterName>: "true" will be generated
+        selector:
+          matchLabels:
+            target-{{ .Values.clusterName }}: "true"
   template:
     metadata:
       name: '{{ `{{ index .path.segments 2 }}` }}'
@@ -41,13 +46,4 @@ spec:
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
-  # Filter apps based on targetClusters in app-config.yaml
-  # If current cluster is not in targetClusters, set empty name to skip Application creation
-  templatePatch: |
-    {{`{{- $currentCluster := "`}}{{ .Values.clusterName }}{{`" -}}`}}
-    {{`{{- $targetClusters := .targetClusters | default (list) -}}`}}
-    {{`{{- if not (has $currentCluster $targetClusters) }}`}}
-    metadata:
-      name: ""
-    {{`{{- end }}`}}
 {{- end }}

@@ -1,11 +1,9 @@
 # Target clusters where this app should be deployed
-# Remove clusters from this list to skip deployment on those clusters
-targetClusters:
-  - infra
-  - dev
-  - test
-  - staging
-  - prod-us
-  - prod-eu
-  - prod-au
-
+# Set to "true" to deploy, "false" or omit to skip
+target-test: "true"
+target-dev: "true"
+target-staging: "true"
+target-infra: "true"
+target-prod-us: "true"
+target-prod-eu: "true"
+target-prod-au: "true"
