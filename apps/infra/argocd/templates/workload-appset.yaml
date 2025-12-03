@@ -50,11 +50,15 @@ spec:
         automated:
           prune: true
           selfHeal: true
-        syncOptions:
-          - CreateNamespace=true
-  # Only generate Application if this cluster is in the app's targetClusters list
+      syncOptions:
+        - CreateNamespace=true
+  # Filter apps based on targetClusters in app-config.yaml
+  # If current cluster is not in targetClusters, set empty name to skip Application creation
   templatePatch: |
-    {{ `{{- if not (has "` }}{{ .Values.clusterName }}{{ `" .targetClusters) }}` }}
-    {{ `{{ fail "skip" }}` }}
-    {{ `{{- end }}` }}
+    {{`{{- $currentCluster := "`}}{{ .Values.clusterName }}{{`" -}}`}}
+    {{`{{- $targetClusters := .targetClusters | default (list) -}}`}}
+    {{`{{- if not (has $currentCluster $targetClusters) }}`}}
+    metadata:
+      name: ""
+    {{`{{- end }}`}}
 {{- end }}
